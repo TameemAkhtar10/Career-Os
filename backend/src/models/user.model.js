@@ -32,6 +32,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    status: {
+      type: String,
+      enum: ["active", "suspended"],
+      default: "active",
+    },
     // Bcrypt hash of the current refresh token — used for rotation & reuse detection.
     // select:false so it is never returned in queries unless explicitly requested.
     refreshTokenHash: {

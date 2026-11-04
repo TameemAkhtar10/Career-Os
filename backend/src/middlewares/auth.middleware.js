@@ -34,6 +34,10 @@ export const protect = async (req, _res, next) => {
       await setCache(cacheKey, user, USER_CACHE_TTL);
     }
 
+    if (user.status === "suspended") {
+      return next(new ApiError(403, "Your account has been suspended. Please contact support."));
+    }
+
     req.user = user; // full user object (no password — select:false)
     next();
   } catch (err) {

@@ -24,6 +24,7 @@ const _safeUser = (user) => ({
   name: user.name,
   email: user.email,
   role: user.role,
+  status: user.status || "active",
   isEmailVerified: user.isEmailVerified,
   createdAt: user.createdAt,
 });
@@ -129,6 +130,10 @@ export const login = asyncHandler(async (req, res) => {
     throw new ApiError(403, "Please verify your email before logging in.");
   }
 
+  if (user.status === "suspended") {
+    throw new ApiError(403, "Your account has been suspended. Please contact support.");
+  }
+
   await _issueAndRotate(res, user);
   await delCache(USER_CACHE_KEY(user._id));
 
@@ -151,6 +156,13 @@ export const refresh = asyncHandler(async (req, res) => {
   const user = await User.findById(payload.sub).select("+refreshTokenHash");
   if (!user) throw new ApiError(401, "User not found.");
   if (!user.isEmailVerified) throw new ApiError(403, "Email not verified.");
+  if (user.status === "suspended") {
+    user.refreshTokenHash = null;
+    await user.save();
+    clearAuthCookies(res);
+    await delCache(USER_CACHE_KEY(user._id));
+    throw new ApiError(403, "Your account has been suspended. Please contact support.");
+  }
 
   // Token reuse detection: compare cookie token against stored hash
   const isValid = await user.compareRefreshToken(token);
