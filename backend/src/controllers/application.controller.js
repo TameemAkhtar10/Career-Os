@@ -8,6 +8,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { delByPrefix } from "../utils/cache.js";
+import { getSignedUrl } from "../services/imagekit.service.js";
 
 /**
  * POST /api/jobs/:jobId/apply (candidate only)
@@ -197,11 +198,12 @@ export const getJobApplications = asyncHandler(async (req, res) => {
   }
 
   // Sort by matchScore desc by default
+  const isAdmin = req.user.role === "admin";
   const sort = { matchScore: -1, createdAt: -1 };
 
   const [rawApplications, total] = await Promise.all([
     Application.find(filter)
-      .populate("candidate", "name") // NEVER populate phone or email
+      .populate("candidate", isAdmin ? "name email" : "name") // Recruiters NEVER get email or phone
       .sort(sort)
       .skip(skip)
       .limit(limit)
@@ -225,23 +227,32 @@ export const getJobApplications = asyncHandler(async (req, res) => {
       ? calculateCandidateCompleteness(candProfile)
       : 0;
 
+    const candidateData = {
+      _id: app.candidate?._id || app.candidate,
+      name: app.candidate?.name || "",
+      headline: candProfile?.headline || "",
+      skills: candProfile?.skills || [],
+      profileCompleteness,
+    };
+
+    // Only admin may see candidate email and phone
+    if (isAdmin) {
+      if (app.candidate?.email) candidateData.email = app.candidate.email;
+      if (candProfile?.phone) candidateData.phone = candProfile.phone;
+    }
+
     return {
       _id: app._id,
       job: app.job,
       status: app.status,
       coverNote: app.coverNote,
       matchScore: app.matchScore,
+      hasResume: Boolean(candProfile?.resume?.fileId),
       recruiterNote: app.recruiterNote,
       statusHistory: app.statusHistory,
       createdAt: app.createdAt,
       updatedAt: app.updatedAt,
-      candidate: {
-        _id: app.candidate?._id || app.candidate,
-        name: app.candidate?.name || "",
-        headline: candProfile?.headline || "",
-        skills: candProfile?.skills || [],
-        profileCompleteness,
-      },
+      candidate: candidateData,
     };
   });
 
@@ -316,5 +327,56 @@ export const updateApplicationStatus = asyncHandler(async (req, res) => {
 
   res.status(200).json(
     new ApiResponse(200, application, "Application status updated successfully.")
+  );
+});
+
+/**
+ * GET /api/applications/:id/resume (recruiter owner or admin)
+ * Returns a 5-minute signed URL for an applicant's resume.
+ * A recruiter can ONLY access resumes of candidates who applied to their own jobs (403 otherwise).
+ */
+export const getApplicationResumeUrl = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const viewer = req.user;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid application ID.");
+  }
+
+  const application = await Application.findById(id).populate("job", "recruiter title");
+  if (!application) {
+    throw new ApiError(404, "Application not found.");
+  }
+
+  const isOwner =
+    application.job &&
+    String(application.job.recruiter) === String(viewer._id);
+  const isAdmin = viewer.role === "admin";
+
+  if (!isOwner && !isAdmin) {
+    throw new ApiError(403, "You do not have permission to access this candidate's resume.");
+  }
+
+  const candidateProfile = await CandidateProfile.findOne({
+    user: application.candidate,
+  });
+
+  if (!candidateProfile || !candidateProfile.resume || !candidateProfile.resume.fileId) {
+    throw new ApiError(404, "No resume uploaded for this candidate.");
+  }
+
+  const signedUrl = getSignedUrl(
+    candidateProfile.resume.filePath || candidateProfile.resume.fileId
+  );
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        url: signedUrl,
+        fileName: candidateProfile.resume.fileName,
+      },
+      "Candidate resume URL generated successfully."
+    )
   );
 });

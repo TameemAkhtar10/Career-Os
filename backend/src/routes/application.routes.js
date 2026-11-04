@@ -7,6 +7,7 @@ import {
   getMyApplications,
   withdrawApplication,
   updateApplicationStatus,
+  getApplicationResumeUrl,
 } from "../controllers/application.controller.js";
 
 const router = Router();
@@ -21,6 +22,14 @@ router.get(
     keyBuilder: (req) => `cache:applications:mine:${req.user._id}:${req.originalUrl}`,
   }),
   getMyApplications
+);
+
+// ── GET /api/applications/:id/resume (recruiter owner or admin) ───────────────
+router.get(
+  "/:id/resume",
+  protect,
+  authorizeRoles("recruiter", "admin"),
+  getApplicationResumeUrl
 );
 
 // ── PATCH /api/applications/:id/withdraw (candidate owner only) ───────────────

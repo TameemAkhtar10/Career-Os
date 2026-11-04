@@ -5,6 +5,12 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { delCache } from "../utils/cache.js";
+import {
+  uploadResumeFile,
+  uploadLogoFile,
+  deleteFileFromImageKit,
+  getSignedUrl,
+} from "../services/imagekit.service.js";
 
 /**
  * Cache key builder for the user's personal profile endpoint.
@@ -45,7 +51,11 @@ export const calculateCandidateCompleteness = (profile) => {
   if (Array.isArray(profile.skills) && profile.skills.length > 0) score += 20;
   if (Array.isArray(profile.projects) && profile.projects.length > 0) score += 15;
   if (Array.isArray(profile.experience) && profile.experience.length > 0) score += 5;
-  if (profile.resumeUrl && profile.resumeUrl.trim().length > 0) score += 5;
+  const hasResume = Boolean(
+    (profile.resume && profile.resume.fileId) ||
+      (profile.resumeUrl && profile.resumeUrl.trim().length > 0)
+  );
+  if (hasResume) score += 5;
   if (
     profile.links &&
     ((profile.links.github && profile.links.github.trim().length > 0) ||
@@ -197,5 +207,137 @@ export const getCandidateProfileById = asyncHandler(async (req, res) => {
 
   res.status(200).json(
     new ApiResponse(200, profileData, "Candidate profile fetched successfully")
+  );
+});
+
+/**
+ * POST /api/profile/candidate/resume (candidate only)
+ * Uploads a private PDF resume to ImageKit and updates CandidateProfile.
+ */
+export const uploadCandidateResume = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  let profile = await CandidateProfile.findOne({ user: userId });
+  if (!profile) {
+    profile = await CandidateProfile.create({ user: userId });
+  }
+
+  // Delete previous resume from ImageKit if exists
+  if (profile.resume && profile.resume.fileId) {
+    await deleteFileFromImageKit(profile.resume.fileId);
+  }
+
+  const uploaded = await uploadResumeFile({
+    buffer: req.file.buffer,
+    fileName: req.sanitizedFileName,
+    userId: String(userId),
+  });
+
+  profile.resume = {
+    fileId: uploaded.fileId,
+    fileName: uploaded.fileName,
+    filePath: uploaded.filePath,
+    size: uploaded.size,
+    uploadedAt: uploaded.uploadedAt,
+  };
+
+  await profile.save();
+  await delCache(profileMeCacheKey(userId));
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        resume: {
+          fileName: profile.resume.fileName,
+          size: profile.resume.size,
+          uploadedAt: profile.resume.uploadedAt,
+        },
+      },
+      "Resume uploaded successfully."
+    )
+  );
+});
+
+/**
+ * DELETE /api/profile/candidate/resume (candidate only)
+ * Deletes candidate's resume from ImageKit and clears profile field.
+ */
+export const deleteCandidateResume = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const profile = await CandidateProfile.findOne({ user: userId });
+  if (!profile || !profile.resume || !profile.resume.fileId) {
+    throw new ApiError(404, "No resume to delete.");
+  }
+
+  await deleteFileFromImageKit(profile.resume.fileId);
+  profile.resume = null;
+  await profile.save();
+  await delCache(profileMeCacheKey(userId));
+
+  res.status(200).json(new ApiResponse(200, null, "Resume deleted successfully."));
+});
+
+/**
+ * GET /api/profile/candidate/resume (candidate only)
+ * Returns a 5-minute signed URL for candidate's own resume.
+ */
+export const getCandidateResumeSignedUrl = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const profile = await CandidateProfile.findOne({ user: userId });
+  if (!profile || !profile.resume || !profile.resume.fileId) {
+    throw new ApiError(404, "No resume uploaded yet.");
+  }
+
+  const signedUrl = getSignedUrl(profile.resume.filePath || profile.resume.fileId);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        url: signedUrl,
+        fileName: profile.resume.fileName,
+        uploadedAt: profile.resume.uploadedAt,
+      },
+      "Resume URL generated successfully."
+    )
+  );
+});
+
+/**
+ * POST /api/profile/recruiter/logo (recruiter only)
+ * Uploads a public company logo image to ImageKit and updates RecruiterProfile.
+ */
+export const uploadRecruiterLogo = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  let profile = await RecruiterProfile.findOne({ user: userId });
+  if (!profile) {
+    profile = await RecruiterProfile.create({
+      user: userId,
+      companyName: "Company",
+    });
+  }
+
+  if (profile.companyLogoFileId) {
+    await deleteFileFromImageKit(profile.companyLogoFileId);
+  }
+
+  const uploaded = await uploadLogoFile({
+    buffer: req.file.buffer,
+    fileName: req.sanitizedFileName,
+    userId: String(userId),
+  });
+
+  profile.companyLogoUrl = uploaded.url;
+  profile.companyLogoFileId = uploaded.fileId;
+  await profile.save();
+  await delCache(profileMeCacheKey(userId));
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      { companyLogoUrl: profile.companyLogoUrl },
+      "Company logo uploaded successfully."
+    )
   );
 });

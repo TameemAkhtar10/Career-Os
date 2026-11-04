@@ -1,7 +1,9 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import validate from "../middlewares/validate.middleware.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 import cacheResponse from "../middlewares/cache.middleware.js";
+import { handleResumeUpload, handleLogoUpload } from "../middlewares/upload.middleware.js";
 import {
   candidateProfileSchema,
   recruiterProfileSchema,
@@ -12,9 +14,21 @@ import {
   upsertRecruiterProfile,
   getCandidateProfileById,
   profileMeCacheKey,
+  uploadCandidateResume,
+  deleteCandidateResume,
+  getCandidateResumeSignedUrl,
+  uploadRecruiterLogo,
 } from "../controllers/profile.controller.js";
 
 const router = Router();
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many upload attempts. Please try again later." },
+});
 
 // ── GET /api/profile/me (protected, cached per user) ──────────────────────────
 router.get(
@@ -25,6 +39,42 @@ router.get(
     keyBuilder: (req) => profileMeCacheKey(req.user?._id),
   }),
   getProfileMe
+);
+
+// ── POST /api/profile/candidate/resume (candidate only) ───────────────────────
+router.post(
+  "/candidate/resume",
+  protect,
+  authorizeRoles("candidate"),
+  uploadLimiter,
+  handleResumeUpload,
+  uploadCandidateResume
+);
+
+// ── DELETE /api/profile/candidate/resume (candidate only) ─────────────────────
+router.delete(
+  "/candidate/resume",
+  protect,
+  authorizeRoles("candidate"),
+  deleteCandidateResume
+);
+
+// ── GET /api/profile/candidate/resume (candidate only) ────────────────────────
+router.get(
+  "/candidate/resume",
+  protect,
+  authorizeRoles("candidate"),
+  getCandidateResumeSignedUrl
+);
+
+// ── POST /api/profile/recruiter/logo (recruiter only) ─────────────────────────
+router.post(
+  "/recruiter/logo",
+  protect,
+  authorizeRoles("recruiter"),
+  uploadLimiter,
+  handleLogoUpload,
+  uploadRecruiterLogo
 );
 
 // ── PUT /api/profile/candidate (candidate only) ───────────────────────────────

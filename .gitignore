@@ -1,0 +1,8 @@
+powershell.cmd
+powershell.exe
+.env*
+node_modules/
+.next/
+dist/
+*.log
+

@@ -178,6 +178,13 @@ const candidateProfileSchema = new mongoose.Schema(
       maxlength: [1000, "Resume URL cannot exceed 1000 characters"],
       default: "",
     },
+    resume: {
+      fileId: { type: String, default: null },
+      fileName: { type: String, default: null },
+      filePath: { type: String, default: null },
+      size: { type: Number, default: null },
+      uploadedAt: { type: Date, default: null },
+    },
     openToWork: {
       type: Boolean,
       default: true,
