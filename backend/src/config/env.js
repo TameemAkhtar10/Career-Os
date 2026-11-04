@@ -15,6 +15,7 @@ export const env = {
 
   MONGO_URI: _required("MONGO_URI"),
   CLIENT_URL: _required("CLIENT_URL"),
+  FRONTEND_URL: _optional("FRONTEND_URL", process.env.CLIENT_URL || "http://localhost:3001"),
 
   // JWT
   JWT_ACCESS_SECRET: _required("JWT_ACCESS_SECRET"),

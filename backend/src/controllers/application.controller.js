@@ -1,9 +1,14 @@
 import mongoose from "mongoose";
 import { Application } from "../models/application.model.js";
 import { Job } from "../models/job.model.js";
+import { User } from "../models/user.model.js";
 import { CandidateProfile } from "../models/candidateProfile.model.js";
 import { calculateCandidateCompleteness } from "./profile.controller.js";
-import { sendApplicationStatusEmail } from "../services/email.service.js";
+import {
+  sendApplicationStatusEmail,
+  sendApplicationConfirmationEmail,
+  sendRecruiterNewApplicantEmail,
+} from "../services/email.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -82,6 +87,45 @@ export const applyToJob = asyncHandler(async (req, res) => {
 
   // Invalidate applications cache
   await delByPrefix("cache:applications:");
+
+  // Non-blocking notification emails
+  if (req.user?.email) {
+    sendApplicationConfirmationEmail(
+      req.user.email,
+      req.user.name || "Candidate",
+      job.title,
+      job.companyName
+    ).catch((err) => {
+      console.error(
+        `[application.controller] Failed to send application confirmation to candidate ${req.user.email}:`,
+        err.message
+      );
+    });
+  }
+
+  if (job.recruiter) {
+    User.findById(job.recruiter)
+      .select("name email")
+      .lean()
+      .then((recruiterUser) => {
+        if (recruiterUser?.email) {
+          return sendRecruiterNewApplicantEmail(
+            recruiterUser.email,
+            recruiterUser.name || "Recruiter",
+            job.title,
+            job.companyName,
+            matchScore,
+            job._id
+          );
+        }
+      })
+      .catch((err) => {
+        console.error(
+          `[application.controller] Failed to send new applicant email to recruiter for job ${job._id}:`,
+          err.message
+        );
+      });
+  }
 
   res.status(201).json(new ApiResponse(201, application, "Application submitted successfully."));
 });
