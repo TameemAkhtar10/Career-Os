@@ -12,6 +12,7 @@ import profileRoutes from "./routes/profile.routes.js";
 import jobRoutes from "./routes/job.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import accountRoutes from "./routes/account.routes.js";
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/account", accountRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, _res, next) => {

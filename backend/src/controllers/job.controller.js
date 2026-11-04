@@ -237,6 +237,7 @@ export const getJobById = asyncHandler(async (req, res) => {
 
   const isOwner =
     req.user &&
+    Boolean(job.recruiter) &&
     String(job.recruiter?._id || job.recruiter) === String(req.user._id);
   const isAdmin = req.user?.role === "admin";
 

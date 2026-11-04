@@ -35,7 +35,8 @@ const applicationSchema = new mongoose.Schema(
     recruiter: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: [true, "Recruiter reference is required"],
+      required: false,
+      default: null,
       index: true,
     },
     status: {
