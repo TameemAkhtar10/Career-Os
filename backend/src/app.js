@@ -2,13 +2,13 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import morgan from "morgan";
 import mongoose from "mongoose";
+import crypto from "crypto";
 
 import { env } from "./config/env.js";
 import { ApiError } from "./utils/ApiError.js";
 import { getRedis } from "./config/redis.js"; // eager init — logs once on startup
-import { httpLogger } from "./config/logger.js";
-import { initSentry, captureException } from "./config/sentry.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
@@ -21,9 +21,6 @@ const app = express();
 
 // Trust reverse proxy for rate-limiting & IP resolution
 app.set("trust proxy", 1);
-
-// Initialize optional Sentry error tracking
-initSentry(app);
 
 // Trigger Redis lazy init at startup so the first request doesn't pay the cost
 getRedis();
@@ -39,9 +36,16 @@ app.use(
   })
 );
 
-// ── Request Logger with X-Request-Id (skip in test) ───────────────────────────
+// ── Request-Id & Lightweight Logging ──────────────────────────────────────────
+app.use((req, res, next) => {
+  const reqId = req.headers["x-request-id"] || crypto.randomUUID();
+  req.id = reqId;
+  res.setHeader("X-Request-Id", reqId);
+  next();
+});
+
 if (env.NODE_ENV !== "test") {
-  app.use(httpLogger);
+  app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
 }
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
@@ -83,11 +87,8 @@ app.use((err, _req, res, _next) => {
   const statusCode = err.isOperational ? err.statusCode : 500;
   const message = err.isOperational ? err.message : "Internal Server Error";
 
-  if (statusCode >= 500) {
-    captureException(err);
-    if (env.NODE_ENV === "development") {
-      console.error(err);
-    }
+  if (statusCode >= 500 && env.NODE_ENV === "development") {
+    console.error(err);
   }
 
   res.status(statusCode).json({

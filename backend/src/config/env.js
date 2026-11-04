@@ -35,7 +35,4 @@ export const env = {
   IMAGEKIT_PUBLIC_KEY: _optional("IMAGEKIT_PUBLIC_KEY"),
   IMAGEKIT_PRIVATE_KEY: _optional("IMAGEKIT_PRIVATE_KEY"),
   IMAGEKIT_URL_ENDPOINT: _optional("IMAGEKIT_URL_ENDPOINT"),
-
-  // Sentry error monitoring (optional)
-  SENTRY_DSN: _optional("SENTRY_DSN"),
 };
