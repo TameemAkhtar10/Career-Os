@@ -30,4 +30,12 @@ export const env = {
 
   // Redis — optional. App works without it (caching disabled, in-memory rate limiting).
   REDIS_URL: _optional("REDIS_URL"),
+
+  // ImageKit file storage (validated lazily when uploading)
+  IMAGEKIT_PUBLIC_KEY: _optional("IMAGEKIT_PUBLIC_KEY"),
+  IMAGEKIT_PRIVATE_KEY: _optional("IMAGEKIT_PRIVATE_KEY"),
+  IMAGEKIT_URL_ENDPOINT: _optional("IMAGEKIT_URL_ENDPOINT"),
+
+  // Sentry error monitoring (optional)
+  SENTRY_DSN: _optional("SENTRY_DSN"),
 };

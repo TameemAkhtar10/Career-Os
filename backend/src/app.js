@@ -2,11 +2,14 @@ import express from "express";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import morgan from "morgan";
+import mongoose from "mongoose";
 
 import { env } from "./config/env.js";
 import { ApiError } from "./utils/ApiError.js";
 import { getRedis } from "./config/redis.js"; // eager init — logs once on startup
+import { httpLogger } from "./config/logger.js";
+import { initSentry, captureException } from "./config/sentry.js";
+
 import authRoutes from "./routes/auth.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 import jobRoutes from "./routes/job.routes.js";
@@ -15,6 +18,12 @@ import adminRoutes from "./routes/admin.routes.js";
 import accountRoutes from "./routes/account.routes.js";
 
 const app = express();
+
+// Trust reverse proxy for rate-limiting & IP resolution
+app.set("trust proxy", 1);
+
+// Initialize optional Sentry error tracking
+initSentry(app);
 
 // Trigger Redis lazy init at startup so the first request doesn't pay the cost
 getRedis();
@@ -30,6 +39,11 @@ app.use(
   })
 );
 
+// ── Request Logger with X-Request-Id (skip in test) ───────────────────────────
+if (env.NODE_ENV !== "test") {
+  app.use(httpLogger);
+}
+
 // ── Body parsing ──────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
@@ -37,14 +51,17 @@ app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 // ── Cookie parser ─────────────────────────────────────────────────────────────
 app.use(cookieParser());
 
-// ── HTTP request logger (skip in test) ───────────────────────────────────────
-if (env.NODE_ENV !== "test") {
-  app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
-}
-
-// ── Health check ──────────────────────────────────────────────────────────────
+// ── Health & Readiness checks ─────────────────────────────────────────────────
 app.get("/api/health", (_req, res) => {
   res.status(200).json({ status: "ok", env: env.NODE_ENV });
+});
+
+app.get("/api/ready", (_req, res) => {
+  const isDbReady = mongoose.connection.readyState === 1;
+  if (isDbReady) {
+    return res.status(200).json({ status: "ready", database: "connected" });
+  }
+  return res.status(503).json({ status: "unavailable", database: "disconnected" });
 });
 
 // ── API routes ────────────────────────────────────────────────────────────────
@@ -66,8 +83,11 @@ app.use((err, _req, res, _next) => {
   const statusCode = err.isOperational ? err.statusCode : 500;
   const message = err.isOperational ? err.message : "Internal Server Error";
 
-  if (env.NODE_ENV === "development") {
-    console.error(err);
+  if (statusCode >= 500) {
+    captureException(err);
+    if (env.NODE_ENV === "development") {
+      console.error(err);
+    }
   }
 
   res.status(statusCode).json({
