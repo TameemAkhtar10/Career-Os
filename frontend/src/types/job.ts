@@ -23,9 +23,17 @@ export interface JobRecruiterSnapshot {
   email?: string;
 }
 
+export interface JobRecruiterProfile {
+  isVerified?: boolean;
+  companyLogoUrl?: string;
+  companyName?: string;
+}
+
 export interface Job {
   _id: string;
   recruiter: JobRecruiterSnapshot | string;
+  recruiterProfile?: JobRecruiterProfile;
+  isVerified?: boolean;
   title: string;
   description: string;
   companyName: string;

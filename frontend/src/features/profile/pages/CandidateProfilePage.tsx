@@ -9,6 +9,7 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { TagInput } from "../../../components/ui/TagInput";
 import { BrandLoader } from "../../../components/feedback/BrandLoader";
+import { ResumeCard } from "../components/ResumeCard";
 import { toast } from "sonner";
 import {
   User,
@@ -655,6 +656,9 @@ export const CandidateProfilePage: React.FC = () => {
               </div>
             </div>
           </Card>
+
+          {/* Section 7: Resume Upload */}
+          <ResumeCard resume={profile?.resume} />
 
           {/* Floating/Fixed Save Bar */}
           <div className="flex items-center justify-between p-4 bg-cream rounded-2xl border border-champagne-border shadow-soft-emerald">

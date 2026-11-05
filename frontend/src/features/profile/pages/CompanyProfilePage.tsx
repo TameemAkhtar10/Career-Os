@@ -9,6 +9,7 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { BrandLoader } from "../../../components/feedback/BrandLoader";
 import { CompanyProfileWarningBanner } from "../../recruiter/components/CompanyProfileWarningBanner";
+import { LogoUploader } from "../components/LogoUploader";
 import { toast } from "sonner";
 import {
   Building2,
@@ -94,9 +95,16 @@ export const CompanyProfilePage: React.FC = () => {
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="font-heading text-2xl sm:text-3xl font-bold text-emerald-ink">
-                Company Profile
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="font-heading text-2xl sm:text-3xl font-bold text-emerald-ink">
+                  Company Profile
+                </h1>
+                {profile?.isVerified && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald/10 border border-emerald/30 text-xs font-semibold text-emerald-dark">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Verified Company
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-body-text/70 mt-1">
                 Your company details are displayed on all your active job postings and candidate touchpoints.
               </p>
@@ -112,6 +120,14 @@ export const CompanyProfilePage: React.FC = () => {
                   Company Identity
                 </h2>
               </div>
+
+              {/* Logo Uploader */}
+              <LogoUploader
+                currentLogoUrl={profile?.companyLogoUrl}
+                onLogoChange={(url) => {
+                  setCompanyLogoUrl(url);
+                }}
+              />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">

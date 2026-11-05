@@ -4,7 +4,7 @@ import rateLimit from "express-rate-limit";
 import validate from "../middlewares/validate.middleware.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import cacheResponse from "../middlewares/cache.middleware.js";
-import { getRedis } from "../config/redis.js";
+import { getRateLimitStore } from "../config/redis.js";
 import {
   registerSchema,
   verifyEmailSchema,
@@ -30,30 +30,15 @@ const router = Router();
 // ── Rate limiter factory ──────────────────────────────────────────────────────
 // Uses Redis store when available, falls back to in-memory automatically.
 
-const makeLimiter = (max, message) => {
-  const options = {
+const makeLimiter = (max, message, prefix = "rl:auth:") =>
+  rateLimit({
     windowMs: 15 * 60 * 1000,
     max,
     standardHeaders: true,
     legacyHeaders: false,
+    store: getRateLimitStore(prefix),
     message: { success: false, message },
-    // Store is resolved lazily; if Redis isn't ready yet we get in-memory.
-    skip: () => false,
-  };
-
-  // Attach Redis store only if Redis is configured
-  const redis = getRedis();
-  if (redis) {
-    // Dynamically import to avoid hard-crashing when the package isn't installed
-    import("rate-limit-redis").then(({ default: RedisStore }) => {
-      options.store = new RedisStore({ sendCommand: (...args) => redis.call(...args) });
-    }).catch(() => {
-      // rate-limit-redis not installed — silently use in-memory
-    });
-  }
-
-  return rateLimit(options);
-};
+  });
 
 /** General auth limiter: 20 requests / 15 min */
 const authLimiter = makeLimiter(20, "Too many requests. Please try again later.");

@@ -52,8 +52,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        fraunces: ["var(--font-fraunces)", "serif"],
-        sans: ["var(--font-plus-jakarta-sans)", "sans-serif"],
+        display: ["var(--font-playfair)", "Georgia", "serif"],
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
       borderRadius: {
         card: "20px",

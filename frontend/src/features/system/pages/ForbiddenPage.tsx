@@ -12,7 +12,7 @@ export const ForbiddenPage: React.FC = () => {
       <div className="w-16 h-16 rounded-full bg-error-bg border border-error-border flex items-center justify-center text-error mb-4 shadow-emerald-sm">
         <ShieldAlert className="w-8 h-8" />
       </div>
-      <h1 className="font-fraunces text-4xl sm:text-5xl font-bold text-emerald-dark mb-2">
+      <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-[-0.01em] text-emerald-dark mb-2">
         Access Denied
       </h1>
       <p className="text-sm text-muted mb-8 leading-relaxed">

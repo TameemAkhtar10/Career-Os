@@ -23,6 +23,7 @@ export interface Application {
   coverNote: string;
   matchScore: number;
   recruiterNote?: string;
+  hasResume?: boolean;
   statusHistory: StatusHistoryItem[];
   createdAt: string;
   updatedAt: string;

@@ -9,7 +9,9 @@ import {
   useUpdateApplicationStatus,
 } from "../hooks/useApplications";
 import { useCandidateProfile } from "../../profile/hooks/useProfile";
+import { applicationsApi } from "../services/applications.api";
 import { Application, CandidateApplicantSummary } from "../../../types/application";
+import { ApiClientError } from "../../../config/api";
 import { Card } from "../../../components/ui/Card";
 import { Badge } from "../../../components/ui/Badge";
 import { Button } from "../../../components/ui/Button";
@@ -54,6 +56,7 @@ export const JobApplicantsPage: React.FC<JobApplicantsPageProps> = ({ jobId }) =
   const [minScore, setMinScore] = useState<number | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [viewingResumeId, setViewingResumeId] = useState<string | null>(null);
 
   // Action modal state
   const [actionTarget, setActionTarget] = useState<{
@@ -151,6 +154,28 @@ export const JobApplicantsPage: React.FC<JobApplicantsPageProps> = ({ jobId }) =
 
   const toggleExpand = (appId: string) => {
     setExpandedNotes((prev) => ({ ...prev, [appId]: !prev[appId] }));
+  };
+
+  const handleViewResume = async (appId: string) => {
+    setViewingResumeId(appId);
+    try {
+      const res = await applicationsApi.getApplicationResume(appId);
+      if (res.data?.resumeUrl) {
+        window.open(res.data.resumeUrl, "_blank", "noreferrer");
+      }
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        if (err.statusCode === 403) {
+          toast.error("You do not have permission to view this resume.");
+        } else if (err.statusCode === 404) {
+          toast.error("Resume not found for this applicant.");
+        } else {
+          toast.error(err.message || "Failed to load resume.");
+        }
+      }
+    } finally {
+      setViewingResumeId(null);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -354,6 +379,20 @@ export const JobApplicantsPage: React.FC<JobApplicantsPageProps> = ({ jobId }) =
                       >
                         View Full Profile
                       </Button>
+
+                      {/* View Resume button – only when hasResume is true */}
+                      {app.hasResume === true && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleViewResume(app._id)}
+                          isLoading={viewingResumeId === app._id}
+                          className="text-xs w-full sm:w-auto gap-1.5"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          View Resume
+                        </Button>
+                      )}
 
                       {/* Decision Action Buttons */}
                       {!isWithdrawn && (

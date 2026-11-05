@@ -1,5 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
+import { getRateLimitStore } from "../config/redis.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
 import {
@@ -24,6 +25,7 @@ const adminLimiter = rateLimit({
   max: 300,
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRateLimitStore("rl:admin:"),
   message: { success: false, message: "Too many admin requests. Please slow down." },
 });
 

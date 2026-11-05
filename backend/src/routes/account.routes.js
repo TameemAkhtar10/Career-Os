@@ -1,5 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
+import { getRateLimitStore } from "../config/redis.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
 import { deleteAccountSchema } from "../validators/account.schemas.js";
@@ -12,6 +13,7 @@ const exportLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRateLimitStore("rl:account:export:"),
   message: { success: false, message: "Too many export requests. Please try again later." },
 });
 
@@ -20,6 +22,7 @@ const deleteLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRateLimitStore("rl:account:delete:"),
   message: { success: false, message: "Too many deletion attempts. Please try again later." },
 });
 

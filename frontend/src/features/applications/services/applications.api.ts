@@ -55,5 +55,10 @@ export const applicationsApi = {
       method: "PATCH",
       body: JSON.stringify({ status, recruiterNote }),
     }),
+
+  getApplicationResume: (id: string): Promise<ApiResponse<{ resumeUrl: string; candidateName: string }>> =>
+    apiClient<{ resumeUrl: string; candidateName: string }>(`/api/applications/${id}/resume`, {
+      method: "GET",
+    }),
 };
 

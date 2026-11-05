@@ -7,6 +7,7 @@ export const ROUTES = {
   VERIFY_EMAIL: "/verify-email",
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
+  ACCOUNT: "/account",
   CANDIDATE: {
     APPLICATIONS: "/candidate/applications",
     PROFILE: "/candidate/profile",
@@ -17,6 +18,12 @@ export const ROUTES = {
     NEW_JOB: "/recruiter/jobs/new",
     EDIT_JOB: (id: string) => `/recruiter/jobs/${id}/edit`,
     APPLICANTS: (id: string) => `/recruiter/jobs/${id}/applicants`,
+  },
+  ADMIN: {
+    ROOT: "/admin",
+    USERS: "/admin/users",
+    JOBS: "/admin/jobs",
+    AUDIT_LOGS: "/admin/audit-logs",
   },
   SYSTEM: {
     FORBIDDEN: "/403",

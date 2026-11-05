@@ -1,4 +1,5 @@
 import Redis from "ioredis";
+import { RedisStore } from "rate-limit-redis";
 import { env } from "./env.js";
 
 let _client = null;
@@ -49,4 +50,17 @@ export const getRedis = () => {
   });
 
   return _client;
+};
+
+/**
+ * Returns a RedisStore instance for express-rate-limit if Redis is configured,
+ * or undefined so express-rate-limit falls back to its default in-memory store.
+ */
+export const getRateLimitStore = (prefix = "rl:") => {
+  const redis = getRedis();
+  if (!redis) return undefined;
+  return new RedisStore({
+    sendCommand: (...args) => redis.call(...args),
+    prefix,
+  });
 };

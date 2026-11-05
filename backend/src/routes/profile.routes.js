@@ -1,5 +1,6 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
+import { getRateLimitStore } from "../config/redis.js";
 import validate from "../middlewares/validate.middleware.js";
 import { protect, authorizeRoles } from "../middlewares/auth.middleware.js";
 import cacheResponse from "../middlewares/cache.middleware.js";
@@ -27,6 +28,7 @@ const uploadLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRateLimitStore("rl:profile:upload:"),
   message: { success: false, message: "Too many upload attempts. Please try again later." },
 });
 

@@ -101,7 +101,10 @@ export const getProfileMe = asyncHandler(async (req, res) => {
       return res.status(200).json(new ApiResponse(200, null, "Profile not created yet"));
     }
 
-    return res.status(200).json(new ApiResponse(200, profile, "Profile fetched successfully"));
+    const profileData = profile.toObject();
+    profileData.isVerified = Boolean(profileData.isVerified);
+
+    return res.status(200).json(new ApiResponse(200, profileData, "Profile fetched successfully"));
   }
 
   // Admin or other roles
@@ -168,7 +171,10 @@ export const upsertRecruiterProfile = asyncHandler(async (req, res) => {
   // Invalidate personal profile cache
   await delCache(profileMeCacheKey(userId));
 
-  res.status(200).json(new ApiResponse(200, profile, "Recruiter profile saved successfully"));
+  const profileData = profile.toObject();
+  profileData.isVerified = Boolean(profileData.isVerified);
+
+  res.status(200).json(new ApiResponse(200, profileData, "Recruiter profile saved successfully"));
 });
 
 /**

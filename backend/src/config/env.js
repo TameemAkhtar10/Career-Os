@@ -1,11 +1,20 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const _required = (key) => {
-  const val = process.env[key];
-  if (!val) throw new Error(`Missing required env variable: ${key}`);
-  return val;
-};
+const requiredKeys = [
+  "MONGO_URI",
+  "CLIENT_URL",
+  "JWT_ACCESS_SECRET",
+  "JWT_REFRESH_SECRET",
+  "JWT_EMAIL_SECRET",
+];
+
+const missingKeys = requiredKeys.filter((key) => !process.env[key]);
+if (missingKeys.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missingKeys.join(", ")}`
+  );
+}
 
 const _optional = (key, fallback = "") => process.env[key] || fallback;
 
@@ -13,14 +22,14 @@ export const env = {
   PORT: process.env.PORT || 5000,
   NODE_ENV: process.env.NODE_ENV || "development",
 
-  MONGO_URI: _required("MONGO_URI"),
-  CLIENT_URL: _required("CLIENT_URL"),
+  MONGO_URI: process.env.MONGO_URI,
+  CLIENT_URL: process.env.CLIENT_URL,
   FRONTEND_URL: _optional("FRONTEND_URL", process.env.CLIENT_URL || "http://localhost:3001"),
 
   // JWT
-  JWT_ACCESS_SECRET: _required("JWT_ACCESS_SECRET"),
-  JWT_REFRESH_SECRET: _required("JWT_REFRESH_SECRET"),
-  JWT_EMAIL_SECRET: _required("JWT_EMAIL_SECRET"),
+  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  JWT_EMAIL_SECRET: process.env.JWT_EMAIL_SECRET,
   JWT_ACCESS_EXPIRES_IN: _optional("JWT_ACCESS_EXPIRES_IN", "15m"),
   JWT_REFRESH_EXPIRES_IN: _optional("JWT_REFRESH_EXPIRES_IN", "7d"),
 

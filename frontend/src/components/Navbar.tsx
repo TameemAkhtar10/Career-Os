@@ -4,10 +4,32 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
+import { useProfileMe } from "../features/profile/hooks/useProfile";
+import { RecruiterProfile } from "../types/profile";
 import { Logo } from "./layout/Logo";
 import { ROUTES } from "../constants/routes";
 import { Button } from "./ui/Button";
-import { Menu, X, LogOut, User as UserIcon, Briefcase, PlusCircle, Building } from "lucide-react";
+import { Menu, X, LogOut, User as UserIcon, Briefcase, PlusCircle, Building, Settings } from "lucide-react";
+
+/** Inner component so the hook only runs when authenticated */
+const RecruiterAvatar: React.FC<{ initial: string }> = ({ initial }) => {
+  const { data: profileMe } = useProfileMe();
+  const profile = profileMe as RecruiterProfile | null;
+  const logoUrl = profile?.companyLogoUrl;
+
+  if (logoUrl) {
+    return (
+      <div className="w-8 h-8 rounded-full border border-champagne-border overflow-hidden bg-champagne/30 flex items-center justify-center">
+        <img src={logoUrl} alt="Company logo" className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+  return (
+    <div className="w-8 h-8 rounded-full bg-emerald text-white flex items-center justify-center text-xs font-semibold">
+      {initial}
+    </div>
+  );
+};
 
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -91,6 +113,14 @@ export const Navbar: React.FC = () => {
               </Link>
             </>
           )}
+
+          {isAuthenticated && user?.role === "admin" && (
+            <>
+              <Link href="/admin" className={navLinkClass(isActive("/admin"))}>
+                Admin Dashboard
+              </Link>
+            </>
+          )}
         </nav>
 
         {/* Right CTA / User Menu */}
@@ -114,9 +144,13 @@ export const Navbar: React.FC = () => {
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-2 p-1.5 rounded-ui bg-champagne/60 border border-border hover:bg-champagne transition-colors focus:outline-none focus:ring-2 focus:ring-gold"
               >
-                <div className="w-8 h-8 rounded-full bg-emerald text-white flex items-center justify-center text-xs font-bold font-fraunces">
-                  {user?.name?.charAt(0).toUpperCase() || "U"}
-                </div>
+                {user?.role === "recruiter" ? (
+                  <RecruiterAvatar initial={user?.name?.charAt(0).toUpperCase() || "U"} />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-emerald text-white flex items-center justify-center text-xs font-semibold">
+                    {user?.name?.charAt(0).toUpperCase() || "U"}
+                  </div>
+                )}
                 <div className="text-left text-xs pr-1">
                   <p className="font-semibold text-emerald-dark leading-tight">{user?.name}</p>
                   <p className="text-[10px] text-muted capitalize leading-tight">{user?.role}</p>
@@ -175,6 +209,14 @@ export const Navbar: React.FC = () => {
                       </Link>
                     </>
                   )}
+                  {/* Account link for all roles */}
+                  <Link
+                    href={ROUTES.ACCOUNT}
+                    className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                    Account
+                  </Link>
                   <div className="border-t border-border/60 mt-1 pt-1">
                     <button
                       onClick={() => logout()}
@@ -294,6 +336,14 @@ export const Navbar: React.FC = () => {
                     </Link>
                   </>
                 )}
+                {/* Account link for mobile */}
+                <Link
+                  href={ROUTES.ACCOUNT}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={navLinkClass(isActive(ROUTES.ACCOUNT))}
+                >
+                  Account
+                </Link>
                 <div className="pt-3 border-t border-border/60">
                   <button
                     onClick={() => {
@@ -314,4 +364,9 @@ export const Navbar: React.FC = () => {
     </header>
   );
 };
+
+
+
+
+
 

@@ -9,8 +9,10 @@ export function middleware(request: NextRequest) {
 
   const isCandidateRoute = pathname.startsWith("/candidate");
   const isRecruiterRoute = pathname.startsWith("/recruiter");
+  const isAccountRoute = pathname.startsWith("/account");
+  const isAdminRoute = pathname.startsWith("/admin");
 
-  if ((isCandidateRoute || isRecruiterRoute) && !hasAuthCookies) {
+  if ((isCandidateRoute || isRecruiterRoute || isAccountRoute || isAdminRoute) && !hasAuthCookies) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(loginUrl);
@@ -23,6 +25,10 @@ export const config = {
   matcher: [
     "/candidate/:path*",
     "/recruiter/:path*",
+    "/account/:path*",
+    "/account",
+    "/admin/:path*",
+    "/admin",
   ],
 };
 

@@ -22,7 +22,7 @@ export default function Error({
       <div className="w-16 h-16 rounded-full bg-error-bg border border-error-border flex items-center justify-center text-error mb-4 shadow-emerald-sm">
         <AlertTriangle className="w-8 h-8" />
       </div>
-      <h1 className="font-fraunces text-3xl font-bold text-emerald-dark mb-2">
+      <h1 className="font-display text-3xl font-bold tracking-[-0.01em] text-emerald-dark mb-2">
         Something went wrong
       </h1>
       <p className="text-sm text-muted mb-8 leading-relaxed">

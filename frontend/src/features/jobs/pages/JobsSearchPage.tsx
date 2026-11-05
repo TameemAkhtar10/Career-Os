@@ -141,7 +141,7 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
       {/* ── Header & Search Bar ─────────────────────────────────────────── */}
       <div className="mb-8 space-y-4">
         <div>
-          <h1 className="font-fraunces text-3xl sm:text-4xl font-bold text-emerald-dark">
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-[-0.01em] text-emerald-dark">
             Explore Open Roles
           </h1>
           <p className="text-xs sm:text-sm text-muted mt-1">
@@ -190,7 +190,7 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
         {/* Filters Sidebar */}
         <aside className="w-full lg:w-72 bg-cream border border-border rounded-card p-5 shadow-emerald-sm shrink-0 space-y-6">
           <div className="flex items-center justify-between pb-3 border-b border-border">
-            <div className="flex items-center gap-2 font-fraunces font-bold text-base text-emerald-dark">
+            <div className="flex items-center gap-2 font-semibold text-base text-emerald-dark">
               <SlidersHorizontal className="w-4 h-4 text-gold" />
               <span>Filter Roles</span>
             </div>
@@ -283,7 +283,7 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
               <span className="text-muted">Min Salary</span>
-              <span className="text-emerald-dark font-fraunces font-bold text-sm">
+              <span className="text-emerald-dark font-bold text-sm tabular-nums">
                 {minLpa > 0 ? `₹${minLpa} LPA+` : "Any"}
               </span>
             </div>
@@ -309,7 +309,7 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
           {/* Controls Bar: Counts & Sort */}
           <div className="bg-cream border border-border rounded-ui p-3 px-4 shadow-emerald-sm flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-muted font-medium">
-              Showing <strong className="text-emerald-dark font-semibold font-fraunces text-sm">{total}</strong>{" "}
+              Showing <strong className="text-emerald-dark font-semibold text-sm tabular-nums">{total}</strong>{" "}
               open position{total === 1 ? "" : "s"}
             </p>
 

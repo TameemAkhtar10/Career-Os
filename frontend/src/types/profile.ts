@@ -26,6 +26,13 @@ export interface ProfileLinks {
   portfolio?: string;
 }
 
+export interface ResumeInfo {
+  fileId?: string;
+  fileName?: string;
+  size?: number;
+  uploadedAt?: string;
+}
+
 export interface CandidateProfile {
   _id?: string;
   user?: {
@@ -47,6 +54,7 @@ export interface CandidateProfile {
   projects: ProjectItem[];
   links: ProfileLinks;
   resumeUrl: string;
+  resume?: ResumeInfo;
   openToWork: boolean;
   expectedRole: string;
   profileCompleteness?: number;
@@ -70,6 +78,7 @@ export interface RecruiterProfile {
   about?: string;
   location?: string;
   designation?: string;
+  isVerified?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

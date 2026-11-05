@@ -91,7 +91,7 @@ export const Logo: React.FC<LogoProps> = ({
       <LogoMark size={size} variant={variant} />
       {showWordmark && (
         <span
-          className={`font-fraunces font-semibold tracking-[-0.02em] leading-none ${textColor} ${textSizes[size]}`}
+          className={`font-display font-bold tracking-[-0.01em] leading-none ${textColor} ${textSizes[size]}`}
         >
           Career OS
         </span>

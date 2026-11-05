@@ -65,7 +65,7 @@ export const ResetPasswordPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-ui bg-gold-light border border-border mb-3 text-emerald shadow-emerald-sm">
             <Lock className="w-6 h-6 text-gold" />
           </div>
-          <h1 className="font-fraunces text-3xl font-bold text-emerald-dark">
+          <h1 className="font-display text-3xl font-bold tracking-[-0.01em] text-emerald-dark">
             Enter New Password
           </h1>
           <p className="text-xs text-muted mt-1.5 leading-relaxed">

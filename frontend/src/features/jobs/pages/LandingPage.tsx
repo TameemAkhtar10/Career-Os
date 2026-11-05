@@ -53,7 +53,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
          
 
           {/* Heading */}
-          <h1 className="font-fraunces text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight text-emerald-dark leading-[1.1] mb-6">
+          <h1 className="font-display text-4xl sm:text-6xl md:text-7xl font-bold tracking-[-0.01em] text-emerald-dark leading-[1.1] mb-6">
             Find Your First Job. <br />
             <span className="italic font-normal text-gold">Launch Your Career.</span>
           </h1>
@@ -110,7 +110,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <span className="w-2 h-2 rounded-full bg-gold" />
             <span className="font-medium">
               Total open positions:{" "}
-              <strong className="text-emerald-dark font-bold font-fraunces text-base">
+              <strong className="text-emerald-dark font-bold text-base tabular-nums">
                 {totalJobs}
               </strong>
             </span>
@@ -126,7 +126,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               <span>Curated Opportunities</span>
             </div>
-            <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-emerald-dark">
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold text-emerald-dark">
               Latest Fresher Jobs
             </h2>
             <p className="text-xs sm:text-sm text-muted mt-1">
@@ -174,7 +174,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <School className="w-3.5 h-3.5 text-gold-start" />
                 <span>For Candidates</span>
               </div>
-              <h3 className="font-fraunces text-2xl sm:text-3xl font-bold leading-tight">
+              <h3 className="font-display text-2xl sm:text-3xl font-semibold leading-tight">
                 Step into Your Career with Zero Gatekeeping.
               </h3>
               <p className="text-champagne/80 text-sm leading-relaxed">
@@ -211,7 +211,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 <Building className="w-3.5 h-3.5 text-emerald" />
                 <span>For Employers</span>
               </div>
-              <h3 className="font-fraunces text-2xl sm:text-3xl font-bold text-emerald-dark leading-tight">
+              <h3 className="font-display text-2xl sm:text-3xl font-semibold text-emerald-dark leading-tight">
                 Hire High-Caliber Young Talent Directly.
               </h3>
               <p className="text-body/80 text-sm leading-relaxed">
@@ -249,7 +249,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <span className="text-xs font-bold uppercase tracking-wider text-gold">
             Structured Hiring
           </span>
-          <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-emerald-dark mt-1">
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold text-emerald-dark mt-1">
             How Career OS Works
           </h2>
           <p className="text-sm text-muted mt-2">
@@ -259,10 +259,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-cream p-7 rounded-card border border-border shadow-emerald-sm">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-start to-gold text-white font-fraunces font-bold flex items-center justify-center mb-4 shadow-emerald-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-start to-gold text-white font-display font-bold lining-nums flex items-center justify-center mb-4 shadow-emerald-sm">
               1
             </div>
-            <h3 className="font-fraunces text-xl font-bold text-emerald-dark mb-2">
+            <h3 className="font-display text-xl font-semibold text-emerald-dark mb-2">
               Complete Profile
             </h3>
             <p className="text-xs text-body/80 leading-relaxed">
@@ -271,10 +271,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <div className="bg-cream p-7 rounded-card border border-border shadow-emerald-sm">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-start to-gold text-white font-fraunces font-bold flex items-center justify-center mb-4 shadow-emerald-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-start to-gold text-white font-display font-bold lining-nums flex items-center justify-center mb-4 shadow-emerald-sm">
               2
             </div>
-            <h3 className="font-fraunces text-xl font-bold text-emerald-dark mb-2">
+            <h3 className="font-display text-xl font-semibold text-emerald-dark mb-2">
               Discover Positions
             </h3>
             <p className="text-xs text-body/80 leading-relaxed">
@@ -283,10 +283,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <div className="bg-cream p-7 rounded-card border border-border shadow-emerald-sm">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-start to-gold text-white font-fraunces font-bold flex items-center justify-center mb-4 shadow-emerald-sm">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-gold-start to-gold text-white font-display font-bold lining-nums flex items-center justify-center mb-4 shadow-emerald-sm">
               3
             </div>
-            <h3 className="font-fraunces text-xl font-bold text-emerald-dark mb-2">
+            <h3 className="font-display text-xl font-semibold text-emerald-dark mb-2">
               Apply &amp; Track
             </h3>
             <p className="text-xs text-body/80 leading-relaxed">
@@ -300,7 +300,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 w-full">
         <div className="bg-gradient-to-br from-emerald to-emerald-dark rounded-[24px] p-8 sm:p-14 text-center text-white relative overflow-hidden shadow-emerald-float border border-emerald-hover">
           <div className="max-w-2xl mx-auto relative z-10 space-y-6">
-            <h2 className="font-fraunces text-3xl sm:text-5xl font-bold leading-tight">
+            <h2 className="font-display text-3xl sm:text-5xl font-semibold leading-tight">
               Ready to take the next step?
             </h2>
             <p className="text-sm sm:text-base text-champagne/80 max-w-lg mx-auto">

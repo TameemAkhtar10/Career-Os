@@ -20,7 +20,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-fraunces font-bold text-emerald-dark text-sm mb-3">
+          <h4 className="font-semibold text-emerald-dark text-sm mb-3">
             For Candidates
           </h4>
           <ul className="space-y-2 text-xs text-muted">
@@ -43,7 +43,7 @@ export const Footer: React.FC = () => {
         </div>
 
         <div>
-          <h4 className="font-fraunces font-bold text-emerald-dark text-sm mb-3">
+          <h4 className="font-semibold text-emerald-dark text-sm mb-3">
             For Recruiters
           </h4>
           <ul className="space-y-2 text-xs text-muted">

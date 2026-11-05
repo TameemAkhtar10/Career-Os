@@ -87,7 +87,7 @@ export const OtpInput: React.FC<OtpInputProps> = ({
               onChange={(e) => handleChange(e, index)}
               onKeyDown={(e) => handleKeyDown(e, index)}
               onPaste={handlePaste}
-              className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-bold font-fraunces rounded-ui bg-cream-input border transition-all duration-150 ${
+              className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-bold font-sans tabular-nums rounded-ui bg-cream-input border transition-all duration-150 ${
                 error
                   ? "border-error focus:border-error focus:ring-2 focus:ring-error/20 bg-error-bg/30 text-error"
                   : "border-border focus:border-gold focus:ring-2 focus:ring-gold/30 text-emerald-dark"

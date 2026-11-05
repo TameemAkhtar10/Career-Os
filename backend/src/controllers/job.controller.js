@@ -197,9 +197,26 @@ export const getPublicJobs = asyncHandler(async (req, res) => {
     Job.countDocuments(filter),
   ]);
 
+  const recruiterIds = rawJobs
+    .map((j) => j.recruiter?._id || j.recruiter)
+    .filter(Boolean);
+
+  const recruiterProfiles = recruiterIds.length
+    ? await RecruiterProfile.find({ user: { $in: recruiterIds } })
+        .select("user isVerified")
+        .lean()
+    : [];
+
+  const verifiedMap = new Map(
+    recruiterProfiles.map((p) => [String(p.user), Boolean(p.isVerified)])
+  );
+
   // Hide salary when isVisible is false and ensure no recruiter contact details are exposed
   const jobs = rawJobs.map((job) => {
     const sanitized = sanitizeSalary(job);
+    const recId = String(sanitized.recruiter?._id || sanitized.recruiter || "");
+    sanitized.isCompanyVerified = verifiedMap.get(recId) || false;
+
     if (sanitized.recruiter && typeof sanitized.recruiter === "object") {
       sanitized.recruiter = {
         _id: sanitized.recruiter._id,
@@ -246,6 +263,15 @@ export const getJobById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Job not found.");
   }
 
+  let isCompanyVerified = false;
+  if (job.recruiter) {
+    const recId = job.recruiter?._id || job.recruiter;
+    const recProfile = await RecruiterProfile.findOne({ user: recId })
+      .select("isVerified")
+      .lean();
+    isCompanyVerified = Boolean(recProfile?.isVerified);
+  }
+
   // Privacy protection: Public responses must NEVER include the recruiter's email or contact details.
   // The owner and admin may see full details (including email).
   if (!isOwner && !isAdmin) {
@@ -260,6 +286,7 @@ export const getJobById = asyncHandler(async (req, res) => {
   // Hide salary if not visible and viewer is not owner or admin
   const sanitizedJob =
     !isOwner && !isAdmin ? sanitizeSalary(job) : job;
+  sanitizedJob.isCompanyVerified = isCompanyVerified;
 
   res.status(200).json(new ApiResponse(200, sanitizedJob, "Job details fetched successfully."));
 });

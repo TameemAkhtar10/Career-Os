@@ -10,10 +10,10 @@ export default function NotFound() {
       <div className="w-16 h-16 rounded-full bg-champagne border border-border flex items-center justify-center text-gold mb-4 shadow-emerald-sm">
         <Compass className="w-8 h-8" />
       </div>
-      <h1 className="font-fraunces text-7xl sm:text-8xl font-black text-emerald-dark tracking-tight">
+      <h1 className="font-display text-7xl sm:text-8xl font-bold lining-nums text-emerald-dark tracking-[-0.01em] leading-[1.1]">
         404
       </h1>
-      <h2 className="font-fraunces text-2xl font-bold text-body mt-2 mb-3">
+      <h2 className="font-display text-2xl font-semibold text-body mt-2 mb-3">
         Page Not Found
       </h2>
       <p className="text-sm text-muted mb-8 leading-relaxed">

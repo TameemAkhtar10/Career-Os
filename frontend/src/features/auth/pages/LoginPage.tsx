@@ -84,7 +84,7 @@ export const LoginPage: React.FC = () => {
           <div className="flex justify-center mb-4">
             <Logo size="md" />
           </div>
-          <h1 className="font-fraunces text-3xl font-bold text-emerald-dark">
+          <h1 className="font-display text-3xl font-bold tracking-[-0.01em] text-emerald-dark">
             Welcome Back
           </h1>
           <p className="text-xs text-muted mt-1.5">

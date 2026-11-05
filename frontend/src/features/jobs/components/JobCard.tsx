@@ -42,7 +42,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
           </div>
 
           {/* Job Title & Company */}
-          <h3 className="font-fraunces text-lg sm:text-xl font-bold text-emerald-dark group-hover:text-gold transition-colors line-clamp-2">
+          <h3 className="font-display text-lg sm:text-xl font-semibold text-emerald-dark group-hover:text-gold transition-colors line-clamp-2">
             {job.title}
           </h3>
           <p className="text-xs font-semibold text-muted uppercase tracking-wider mt-1">
@@ -87,7 +87,7 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
             <span className="block text-[10px] uppercase font-bold text-muted">
               Compensation
             </span>
-            <span className="font-fraunces text-base font-bold text-emerald-dark">
+            <span className="font-display text-base font-semibold lining-nums text-emerald-dark">
               {formatSalary(job.salary)}
             </span>
           </div>

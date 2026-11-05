@@ -18,7 +18,7 @@ export const BrandLoader: React.FC<BrandLoaderProps> = ({
         <LogoMark size="lg" isLoader={false} className="w-14 h-14" />
       </div>
       <div className="space-y-1">
-        <h2 className="font-fraunces text-2xl font-semibold tracking-[-0.02em] text-[#064E3B]">
+        <h2 className="font-display text-2xl font-bold tracking-[-0.01em] text-[#064E3B]">
           Career OS
         </h2>
         <p className="text-xs text-muted tracking-wide">{message}</p>

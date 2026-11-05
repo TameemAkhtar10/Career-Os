@@ -59,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
 
         {title && (
           <div className="mb-4 pr-8">
-            <h3 className="font-fraunces text-xl font-bold text-emerald-dark">
+            <h3 className="font-display text-xl font-semibold text-emerald-dark">
               {title}
             </h3>
             {description && (

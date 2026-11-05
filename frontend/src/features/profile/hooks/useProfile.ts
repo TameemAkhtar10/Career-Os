@@ -50,3 +50,44 @@ export const useUpdateRecruiterProfile = () => {
   });
 };
 
+export const useUploadResume = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      file,
+      onProgress,
+    }: {
+      file: File;
+      onProgress?: (pct: number) => void;
+    }) => profileApi.uploadResume(file, onProgress),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
+    },
+  });
+};
+
+export const useDeleteResume = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => profileApi.deleteResume(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
+      toast.success("Resume deleted.");
+    },
+  });
+};
+
+export const useUploadLogo = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (file: File) => profileApi.uploadLogo(file),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
+      toast.success("Company logo updated.");
+    },
+  });
+};
+

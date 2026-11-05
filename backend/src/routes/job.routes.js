@@ -3,6 +3,7 @@ import validate from "../middlewares/validate.middleware.js";
 import { protect, authorizeRoles, optionalAuth } from "../middlewares/auth.middleware.js";
 import cacheResponse from "../middlewares/cache.middleware.js";
 import rateLimit from "express-rate-limit";
+import { getRateLimitStore } from "../config/redis.js";
 import {
   createJobSchema,
   updateJobSchema,
@@ -31,6 +32,7 @@ const applyLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  store: getRateLimitStore("rl:jobs:apply:"),
   message: { success: false, message: "Too many applications submitted. Please try again later." },
 });
 

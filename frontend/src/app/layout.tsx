@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "../providers/StoreProvider";
 import { QueryProvider } from "../providers/QueryProvider";
@@ -10,15 +10,17 @@ import { Footer } from "../components/Footer";
 import { OfflineBanner } from "../components/feedback/OfflineBanner";
 import React, { Suspense } from "react";
 
-const fraunces = Fraunces({
+const playfair = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-fraunces",
+  weight: ["600", "700"],
+  variable: "--font-playfair",
   display: "swap",
 });
 
-const plusJakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-plus-jakarta-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -37,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${plusJakartaSans.variable}`}>
+    <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
       <body className="bg-champagne text-body flex flex-col min-h-screen">
         <StoreProvider>
           <QueryProvider>
