@@ -1,6 +1,8 @@
 import { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/siteUrl";
 
+export const revalidate = 60;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getSiteUrl();
   const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
@@ -62,9 +64,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
   try {
     const res = await fetch(`${backendUrl}/api/jobs?limit=50`, {
       next: { revalidate: 60 },
+      signal: controller.signal,
     });
 
     if (!res.ok) return staticRoutes;
@@ -82,6 +88,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return [...staticRoutes, ...jobRoutes];
   } catch {
     return staticRoutes;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

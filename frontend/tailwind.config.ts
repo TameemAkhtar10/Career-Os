@@ -52,8 +52,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ["var(--font-playfair)", "Georgia", "serif"],
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        display: ["'Playfair Display Variable'", "Georgia", "serif"],
+        sans: ["'Inter Variable'", "system-ui", "sans-serif"],
       },
       borderRadius: {
         card: "20px",

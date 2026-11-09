@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import "@fontsource-variable/playfair-display";
+import "@fontsource-variable/inter";
 import "./globals.css";
 import { StoreProvider } from "../providers/StoreProvider";
 import { QueryProvider } from "../providers/QueryProvider";
@@ -11,20 +12,6 @@ import { OfflineBanner } from "../components/feedback/OfflineBanner";
 import { ScrollToTop } from "../components/navigation/ScrollToTop";
 import { getSiteUrl } from "@/lib/siteUrl";
 import React, { Suspense } from "react";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-playfair",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-inter",
-  display: "swap",
-});
 
 export const viewport: Viewport = {
   themeColor: "#064E3B",
@@ -61,7 +48,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfair.variable} ${inter.variable}`}>
+    <html lang="en">
       <body className="bg-champagne text-body flex flex-col min-h-screen">
         {/* Accessible Skip-to-Content Link */}
         <a

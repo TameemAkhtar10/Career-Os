@@ -28,13 +28,18 @@ export const metadata: Metadata = {
 
 async function getLandingData() {
   const backendUrl = process.env.BACKEND_URL || "http://localhost:3000";
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
   try {
     const [jobsRes, countRes] = await Promise.all([
       fetch(`${backendUrl}/api/jobs?fresher=true&limit=6`, {
         next: { revalidate: 60 },
+        signal: controller.signal,
       }),
       fetch(`${backendUrl}/api/jobs?limit=1`, {
         next: { revalidate: 60 },
+        signal: controller.signal,
       }),
     ]);
 
@@ -52,6 +57,8 @@ async function getLandingData() {
       total: 0,
       hasError: true,
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
