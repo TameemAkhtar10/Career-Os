@@ -4,7 +4,7 @@ import { UnsubscribePage } from "@/features/notifications/pages/UnsubscribePage"
 import { Loader2 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Unsubscribe | Career OS",
+  title: "Unsubscribe",
   robots: { index: false, follow: false },
 };
 

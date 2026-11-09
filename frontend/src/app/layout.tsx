@@ -9,6 +9,7 @@ import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { OfflineBanner } from "../components/feedback/OfflineBanner";
 import { ScrollToTop } from "../components/navigation/ScrollToTop";
+import { getSiteUrl } from "@/lib/siteUrl";
 import React, { Suspense } from "react";
 
 const playfair = Playfair_Display({
@@ -30,7 +31,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     template: "%s | Career OS",
     default: "Career OS | Fresher & Recruiter Hiring Platform",
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "/",
+    url: getSiteUrl(),
     siteName: "Career OS",
     title: "Career OS | Fresher & Recruiter Hiring Platform",
     description:

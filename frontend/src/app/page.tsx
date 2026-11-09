@@ -1,12 +1,29 @@
 import { Metadata } from "next";
 import { LandingPage } from "../features/jobs/pages/LandingPage";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Career OS | Premier Fresher & Recruiter Hiring Platform",
+  title: {
+    absolute: "Career OS | Fresher & Recruiter Hiring Platform",
+  },
   description:
     "Find your first job and launch your career. Verified fresher opportunities and high-velocity hiring.",
+  alternates: {
+    canonical: getSiteUrl(),
+  },
+  openGraph: {
+    title: "Career OS | Fresher & Recruiter Hiring Platform",
+    description:
+      "Find your first job and launch your career. Verified fresher opportunities and high-velocity hiring.",
+    url: getSiteUrl(),
+  },
+  twitter: {
+    title: "Career OS | Fresher & Recruiter Hiring Platform",
+    description:
+      "Find your first job and launch your career. Verified fresher opportunities and high-velocity hiring.",
+  },
 };
 
 async function getLandingData() {
