@@ -160,8 +160,8 @@ export const JobApplicantsPage: React.FC<JobApplicantsPageProps> = ({ jobId }) =
     setViewingResumeId(appId);
     try {
       const res = await applicationsApi.getApplicationResume(appId);
-      if (res.data?.resumeUrl) {
-        window.open(res.data.resumeUrl, "_blank", "noreferrer");
+      if (res.data?.url) {
+        window.open(res.data.url, "_blank", "noreferrer");
       }
     } catch (err) {
       if (err instanceof ApiClientError) {

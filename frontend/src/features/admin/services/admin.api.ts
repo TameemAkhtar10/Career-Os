@@ -5,6 +5,7 @@ import {
   AdminUsersResponse,
   AdminJobsResponse,
   AdminAuditLogsResponse,
+  AdminCronRunsResponse,
 } from "../../../types/admin";
 
 export const adminApi = {
@@ -82,5 +83,27 @@ export const adminApi = {
     const q = qs.toString();
     return apiClient(`/api/admin/audit-logs${q ? `?${q}` : ""}`, { method: "GET" });
   },
+
+  getCronRuns: (params: {
+    page?: number;
+    limit?: number;
+    task?: string;
+  }): Promise<ApiResponse<AdminCronRunsResponse>> => {
+    const qs = new URLSearchParams();
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.task) qs.set("task", params.task);
+    const q = qs.toString();
+    return apiClient(`/api/admin/cron-runs${q ? `?${q}` : ""}`, { method: "GET" });
+  },
+
+  triggerCronTask: (
+    task: string,
+    dryRun: boolean
+  ): Promise<ApiResponse<unknown>> =>
+    apiClient(`/api/admin/cron/${task}/run`, {
+      method: "POST",
+      body: JSON.stringify({ dryRun }),
+    }),
 };
 

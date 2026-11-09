@@ -3,8 +3,16 @@ import rateLimit from "express-rate-limit";
 import { getRateLimitStore } from "../config/redis.js";
 import { protect } from "../middlewares/auth.middleware.js";
 import validate from "../middlewares/validate.middleware.js";
-import { deleteAccountSchema } from "../validators/account.schemas.js";
-import { deleteAccount, exportAccountData } from "../controllers/account.controller.js";
+import {
+  deleteAccountSchema,
+  updateNotificationPreferencesSchema,
+} from "../validators/account.schemas.js";
+import {
+  deleteAccount,
+  exportAccountData,
+  getNotificationPreferences,
+  updateNotificationPreferences,
+} from "../controllers/account.controller.js";
 
 const router = Router();
 
@@ -30,5 +38,13 @@ router.use(protect);
 
 router.get("/export", exportLimiter, exportAccountData);
 router.delete("/", deleteLimiter, validate(deleteAccountSchema), deleteAccount);
+
+// ── Notification Preferences ──────────────────────────────────────────────────
+router.get("/notification-preferences", getNotificationPreferences);
+router.patch(
+  "/notification-preferences",
+  validate(updateNotificationPreferencesSchema),
+  updateNotificationPreferences
+);
 
 export default router;

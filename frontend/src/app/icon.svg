@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="careerOsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#064E3B" />
+      <stop offset="100%" stop-color="#032E23" />
+    </linearGradient>
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E6AF50" />
+      <stop offset="100%" stop-color="#C8963E" />
+    </linearGradient>
+  </defs>
+  <!-- Background Rounded Shield / Square -->
+  <rect width="32" height="32" rx="8" fill="url(#careerOsGrad)" stroke="#E8D3AA" stroke-width="1" />
+  
+  <!-- Stylized Monogram C / Career OS Knot -->
+  <path
+    d="M21 11.5C19.8 10 17.5 9.2 15 9.5C11.5 9.9 8.8 12.8 8.8 16.3C8.8 19.8 11.5 22.7 15 23.1C17.5 23.4 19.8 22.6 21 21.1"
+    fill="none"
+    stroke="#FFF8EC"
+    stroke-width="2.6"
+    stroke-linecap="round"
+  />
+  
+  <!-- Golden Core Spark / Accent Dot -->
+  <circle cx="17.5" cy="16.3" r="1.8" fill="url(#goldAccent)" />
+</svg>
+

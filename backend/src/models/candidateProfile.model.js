@@ -179,15 +179,20 @@ const candidateProfileSchema = new mongoose.Schema(
       default: "",
     },
     resume: {
-      fileId: { type: String, default: null },
+      fileId: { type: mongoose.Schema.Types.Mixed, default: null },
       fileName: { type: String, default: null },
       filePath: { type: String, default: null },
       size: { type: Number, default: null },
       uploadedAt: { type: Date, default: null },
+      storage: { type: String, default: null },
     },
     openToWork: {
       type: Boolean,
       default: true,
+    },
+    lastNudgedAt: {
+      type: Date,
+      default: null,
     },
     expectedRole: {
       type: String,

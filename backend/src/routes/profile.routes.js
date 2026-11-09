@@ -18,6 +18,8 @@ import {
   uploadCandidateResume,
   deleteCandidateResume,
   getCandidateResumeSignedUrl,
+  getCandidateResumeUrl,
+  streamCandidateResumeFile,
   uploadRecruiterLogo,
 } from "../controllers/profile.controller.js";
 
@@ -67,6 +69,14 @@ router.get(
   protect,
   authorizeRoles("candidate"),
   getCandidateResumeSignedUrl
+);
+
+// ── GET /api/profile/candidate/resume/file (candidate only, streaming) ────────
+router.get(
+  "/candidate/resume/file",
+  protect,
+  authorizeRoles("candidate"),
+  streamCandidateResumeFile
 );
 
 // ── POST /api/profile/recruiter/logo (recruiter only) ─────────────────────────

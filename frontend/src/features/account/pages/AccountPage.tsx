@@ -10,6 +10,7 @@ import { ApiClientError } from "../../../config/api";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
+import { NotificationPreferencesCard } from "../components/NotificationPreferencesCard";
 import { toast } from "sonner";
 import { Download, Trash2, AlertTriangle, ShieldAlert } from "lucide-react";
 
@@ -113,6 +114,9 @@ export const AccountPage: React.FC = () => {
             Download my data
           </Button>
         </Card>
+
+        {/* Email Notification Preferences */}
+        <NotificationPreferencesCard />
 
         {/* Danger Zone — hidden for admin */}
         {!isAdmin && (

@@ -24,33 +24,6 @@ export const getImageKitClient = () => {
 };
 
 /**
- * Uploads a candidate resume as a private file into /resumes/<userId>
- */
-export const uploadResumeFile = async ({ buffer, fileName, userId }) => {
-  const client = getImageKitClient();
-  try {
-    const res = await client.upload({
-      file: buffer,
-      fileName,
-      folder: `/resumes/${userId}`,
-      isPrivateFile: true,
-      useUniqueFileName: true,
-    });
-    return {
-      fileId: res.fileId,
-      fileName: res.name,
-      filePath: res.filePath,
-      url: res.url,
-      size: res.size,
-      uploadedAt: new Date(),
-    };
-  } catch (err) {
-    console.error("[ImageKit Resume Upload Error]:", err);
-    throw new ApiError(502, "Failed to upload resume. Please try again.");
-  }
-};
-
-/**
  * Uploads a recruiter company logo as a public file into /logos/<userId>
  */
 export const uploadLogoFile = async ({ buffer, fileName, userId }) => {
@@ -75,7 +48,7 @@ export const uploadLogoFile = async ({ buffer, fileName, userId }) => {
 };
 
 /**
- * Deletes a file from ImageKit by fileId
+ * Deletes a file from ImageKit by fileId (used for company logos and legacy resumes)
  */
 export const deleteFileFromImageKit = async (fileId) => {
   if (!fileId) return;
@@ -85,31 +58,5 @@ export const deleteFileFromImageKit = async (fileId) => {
   } catch (err) {
     console.error(`[ImageKit Delete Error for ${fileId}]:`, err.message || err);
     // Non-blocking: do not crash if file already deleted
-  }
-};
-
-/**
- * Generates a signed URL valid for ~5 minutes (300 seconds)
- */
-export const getSignedUrl = (filePathOrUrl) => {
-  const client = getImageKitClient();
-  try {
-    // If it starts with / or is a relative path in ImageKit
-    if (filePathOrUrl.startsWith("http://") || filePathOrUrl.startsWith("https://")) {
-      return client.url({
-        src: filePathOrUrl,
-        signed: true,
-        expireSeconds: 300,
-      });
-    }
-
-    return client.url({
-      path: filePathOrUrl,
-      signed: true,
-      expireSeconds: 300,
-    });
-  } catch (err) {
-    console.error("[ImageKit Signed URL Error]:", err);
-    throw new ApiError(502, "Failed to generate secure document URL.");
   }
 };

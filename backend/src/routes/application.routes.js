@@ -8,6 +8,7 @@ import {
   withdrawApplication,
   updateApplicationStatus,
   getApplicationResumeUrl,
+  streamApplicationResumeFile,
 } from "../controllers/application.controller.js";
 
 const router = Router();
@@ -30,6 +31,14 @@ router.get(
   protect,
   authorizeRoles("recruiter", "admin"),
   getApplicationResumeUrl
+);
+
+// ── GET /api/applications/:id/resume/file (recruiter owner or admin) ──────────
+router.get(
+  "/:id/resume/file",
+  protect,
+  authorizeRoles("recruiter", "admin"),
+  streamApplicationResumeFile
 );
 
 // ── PATCH /api/applications/:id/withdraw (candidate owner only) ───────────────

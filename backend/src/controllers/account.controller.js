@@ -5,6 +5,7 @@ import { Job } from "../models/job.model.js";
 import { Application } from "../models/application.model.js";
 import { Otp } from "../models/otp.model.js";
 import { deleteFileFromImageKit } from "../services/imagekit.service.js";
+import { deleteResumeFromGridFS } from "../services/gridfs.service.js";
 import { clearAuthCookies } from "../services/token.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -37,7 +38,11 @@ export const deleteAccount = asyncHandler(async (req, res) => {
   if (user.role === "candidate") {
     const candidateProfile = await CandidateProfile.findOne({ user: userId });
     if (candidateProfile?.resume?.fileId) {
-      await deleteFileFromImageKit(candidateProfile.resume.fileId);
+      if (candidateProfile.resume.storage === "gridfs") {
+        await deleteResumeFromGridFS(candidateProfile.resume.fileId);
+      } else {
+        await deleteFileFromImageKit(candidateProfile.resume.fileId);
+      }
     }
 
     await Promise.all([
@@ -123,5 +128,61 @@ export const exportAccountData = asyncHandler(async (req, res) => {
 
   res.status(200).json(
     new ApiResponse(200, exportData, "Account data exported successfully.")
+  );
+});
+
+/**
+ * GET /api/account/notification-preferences
+ * Returns the current user's email notification preferences.
+ */
+export const getNotificationPreferences = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).lean();
+  if (!user) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  const emailPreferences = {
+    jobAlerts: user.emailPreferences?.jobAlerts ?? true,
+    applicantDigest: user.emailPreferences?.applicantDigest ?? true,
+    profileNudges: user.emailPreferences?.profileNudges ?? true,
+  };
+
+  res.status(200).json(
+    new ApiResponse(200, emailPreferences, "Notification preferences retrieved successfully.")
+  );
+});
+
+/**
+ * PATCH /api/account/notification-preferences
+ * Updates the current user's email notification preferences.
+ */
+export const updateNotificationPreferences = asyncHandler(async (req, res) => {
+  const { jobAlerts, applicantDigest, profileNudges } = req.body;
+
+  const updateFields = {};
+  if (typeof jobAlerts === "boolean") updateFields["emailPreferences.jobAlerts"] = jobAlerts;
+  if (typeof applicantDigest === "boolean") updateFields["emailPreferences.applicantDigest"] = applicantDigest;
+  if (typeof profileNudges === "boolean") updateFields["emailPreferences.profileNudges"] = profileNudges;
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: updateFields },
+    { new: true }
+  ).lean();
+
+  if (!updatedUser) {
+    throw new ApiError(404, "User not found.");
+  }
+
+  await delCache(`user:${req.user._id}`);
+
+  const emailPreferences = {
+    jobAlerts: updatedUser.emailPreferences?.jobAlerts ?? true,
+    applicantDigest: updatedUser.emailPreferences?.applicantDigest ?? true,
+    profileNudges: updatedUser.emailPreferences?.profileNudges ?? true,
+  };
+
+  res.status(200).json(
+    new ApiResponse(200, emailPreferences, "Notification preferences updated successfully.")
   );
 });

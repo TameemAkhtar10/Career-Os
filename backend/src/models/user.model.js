@@ -37,6 +37,20 @@ const userSchema = new mongoose.Schema(
       enum: ["active", "suspended"],
       default: "active",
     },
+    emailPreferences: {
+      jobAlerts: {
+        type: Boolean,
+        default: true,
+      },
+      applicantDigest: {
+        type: Boolean,
+        default: true,
+      },
+      profileNudges: {
+        type: Boolean,
+        default: true,
+      },
+    },
     // Bcrypt hash of the current refresh token — used for rotation & reuse detection.
     // select:false so it is never returned in queries unless explicitly requested.
     refreshTokenHash: {

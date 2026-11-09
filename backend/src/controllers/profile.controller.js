@@ -6,11 +6,15 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { delCache } from "../utils/cache.js";
 import {
-  uploadResumeFile,
   uploadLogoFile,
   deleteFileFromImageKit,
-  getSignedUrl,
 } from "../services/imagekit.service.js";
+import {
+  uploadResumeToGridFS,
+  deleteResumeFromGridFS,
+  openResumeDownloadStream,
+  findResumeFile,
+} from "../services/gridfs.service.js";
 
 /**
  * Cache key builder for the user's personal profile endpoint.
@@ -218,7 +222,7 @@ export const getCandidateProfileById = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/profile/candidate/resume (candidate only)
- * Uploads a private PDF resume to ImageKit and updates CandidateProfile.
+ * Uploads a private PDF resume to MongoDB GridFS and updates CandidateProfile.
  */
 export const uploadCandidateResume = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -228,12 +232,16 @@ export const uploadCandidateResume = asyncHandler(async (req, res) => {
     profile = await CandidateProfile.create({ user: userId });
   }
 
-  // Delete previous resume from ImageKit if exists
+  // Delete previous resume from its store if exists
   if (profile.resume && profile.resume.fileId) {
-    await deleteFileFromImageKit(profile.resume.fileId);
+    if (profile.resume.storage === "gridfs") {
+      await deleteResumeFromGridFS(profile.resume.fileId);
+    } else {
+      await deleteFileFromImageKit(profile.resume.fileId);
+    }
   }
 
-  const uploaded = await uploadResumeFile({
+  const uploaded = await uploadResumeToGridFS({
     buffer: req.file.buffer,
     fileName: req.sanitizedFileName,
     userId: String(userId),
@@ -242,9 +250,10 @@ export const uploadCandidateResume = asyncHandler(async (req, res) => {
   profile.resume = {
     fileId: uploaded.fileId,
     fileName: uploaded.fileName,
-    filePath: uploaded.filePath,
+    filePath: uploaded.fileName,
     size: uploaded.size,
     uploadedAt: uploaded.uploadedAt,
+    storage: "gridfs",
   };
 
   await profile.save();
@@ -267,7 +276,7 @@ export const uploadCandidateResume = asyncHandler(async (req, res) => {
 
 /**
  * DELETE /api/profile/candidate/resume (candidate only)
- * Deletes candidate's resume from ImageKit and clears profile field.
+ * Deletes candidate's resume from its store and clears profile field.
  */
 export const deleteCandidateResume = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -276,7 +285,12 @@ export const deleteCandidateResume = asyncHandler(async (req, res) => {
     throw new ApiError(404, "No resume to delete.");
   }
 
-  await deleteFileFromImageKit(profile.resume.fileId);
+  if (profile.resume.storage === "gridfs") {
+    await deleteResumeFromGridFS(profile.resume.fileId);
+  } else {
+    await deleteFileFromImageKit(profile.resume.fileId);
+  }
+
   profile.resume = null;
   await profile.save();
   await delCache(profileMeCacheKey(userId));
@@ -286,7 +300,8 @@ export const deleteCandidateResume = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/profile/candidate/resume (candidate only)
- * Returns a 5-minute signed URL for candidate's own resume.
+ * Returns relative streaming URL for candidate's own resume with both 'url' and 'resumeUrl'.
+ * Returns 404 "Resume needs to be re-uploaded" for legacy non-GridFS records.
  */
 export const getCandidateResumeSignedUrl = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -295,19 +310,67 @@ export const getCandidateResumeSignedUrl = asyncHandler(async (req, res) => {
     throw new ApiError(404, "No resume uploaded yet.");
   }
 
-  const signedUrl = getSignedUrl(profile.resume.filePath || profile.resume.fileId);
+  if (profile.resume.storage !== "gridfs") {
+    throw new ApiError(404, "Resume needs to be re-uploaded");
+  }
+
+  const relativeUrl = "/api/profile/candidate/resume/file";
 
   res.status(200).json(
     new ApiResponse(
       200,
       {
-        url: signedUrl,
+        url: relativeUrl,
+        resumeUrl: relativeUrl,
         fileName: profile.resume.fileName,
         uploadedAt: profile.resume.uploadedAt,
       },
       "Resume URL generated successfully."
     )
   );
+});
+
+export const getCandidateResumeUrl = getCandidateResumeSignedUrl;
+
+/**
+ * GET /api/profile/candidate/resume/file (candidate only)
+ * Streams candidate's own PDF resume directly from MongoDB GridFS.
+ */
+export const streamCandidateResumeFile = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const profile = await CandidateProfile.findOne({ user: userId });
+
+  if (!profile || !profile.resume || !profile.resume.fileId) {
+    throw new ApiError(404, "No resume uploaded yet.");
+  }
+
+  if (profile.resume.storage !== "gridfs") {
+    throw new ApiError(404, "Resume needs to be re-uploaded");
+  }
+
+  const fileDoc = await findResumeFile(profile.resume.fileId);
+  if (!fileDoc) {
+    throw new ApiError(404, "Resume file not found in storage.");
+  }
+
+  const safeFileName = (profile.resume.fileName || fileDoc.filename || "resume.pdf").replace(/["\r\n\\]/g, "");
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename="${safeFileName}"`);
+  res.setHeader("Cache-Control", "private, no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  if (fileDoc.length) {
+    res.setHeader("Content-Length", fileDoc.length);
+  }
+
+  const downloadStream = openResumeDownloadStream(profile.resume.fileId);
+  downloadStream.on("error", (err) => {
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: "Failed to stream resume." });
+    }
+  });
+
+  downloadStream.pipe(res);
 });
 
 /**

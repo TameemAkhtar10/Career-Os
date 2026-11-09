@@ -7,6 +7,7 @@ import {
   updateUserStatusSchema,
   updateJobStatusSchema,
   verifyRecruiterSchema,
+  triggerCronTaskSchema,
 } from "../validators/admin.schemas.js";
 import {
   getStats,
@@ -16,6 +17,8 @@ import {
   updateJobStatus,
   verifyRecruiter,
   getAuditLogs,
+  getCronRuns,
+  triggerCronTask,
 } from "../controllers/admin.controller.js";
 
 const router = Router();
@@ -49,5 +52,9 @@ router.patch("/recruiters/:userId/verify", validate(verifyRecruiterSchema), veri
 
 // Audit Trail
 router.get("/audit-logs", getAuditLogs);
+
+// Scheduled Cron Management
+router.get("/cron-runs", getCronRuns);
+router.post("/cron/:task/run", validate(triggerCronTaskSchema), triggerCronTask);
 
 export default router;

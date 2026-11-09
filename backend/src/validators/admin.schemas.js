@@ -18,3 +18,7 @@ export const verifyRecruiterSchema = z.object({
     invalid_type_error: "isVerified must be a boolean",
   }),
 });
+
+export const triggerCronTaskSchema = z.object({
+  dryRun: z.boolean({ invalid_type_error: "dryRun must be a boolean" }).optional(),
+});

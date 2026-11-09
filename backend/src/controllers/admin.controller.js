@@ -4,6 +4,8 @@ import { Job } from "../models/job.model.js";
 import { Application } from "../models/application.model.js";
 import { RecruiterProfile } from "../models/recruiterProfile.model.js";
 import { AuditLog, logAdminAction } from "../models/auditLog.model.js";
+import { CronRun } from "../models/cronRun.model.js";
+import { getJobRunner } from "../jobs/index.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -351,6 +353,84 @@ export const getAuditLogs = asyncHandler(async (req, res) => {
       200,
       { auditLogs, page, limit, total, totalPages },
       "Audit logs fetched successfully."
+    )
+  );
+});
+
+/**
+ * GET /api/admin/cron-runs
+ * Paginated list of scheduled task runs, filterable by task.
+ */
+export const getCronRuns = asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 20));
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (req.query.task && typeof req.query.task === "string") {
+    query.task = req.query.task.trim();
+  }
+
+  const [runs, total] = await Promise.all([
+    CronRun.find(query)
+      .sort({ startedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    CronRun.countDocuments(query),
+  ]);
+
+  const totalPages = Math.ceil(total / limit) || 1;
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      { runs, page, limit, total, totalPages },
+      "Cron runs fetched successfully."
+    )
+  );
+});
+
+/**
+ * POST /api/admin/cron/:task/run
+ * Manually triggers a cron task immediately with a forced key.
+ * Audit-logged.
+ */
+export const triggerCronTask = asyncHandler(async (req, res) => {
+  const { task } = req.params;
+  const dryRun = Boolean(req.body.dryRun);
+
+  const runner = getJobRunner(task);
+  if (!runner) {
+    throw new ApiError(
+      400,
+      `Unknown task '${task}'. Supported tasks: job-digest, recruiter-digest, job-auto-close, profile-nudge.`
+    );
+  }
+
+  // Run immediately with force: true so manual run gets a unique key suffix
+  const result = await runner({ dryRun, force: true });
+
+  // Audit log the admin action
+  await logAdminAction({
+    adminId: req.user._id,
+    action: "TRIGGER_CRON_TASK",
+    targetType: "CronRun",
+    targetId: req.user._id,
+    meta: {
+      task,
+      dryRun,
+      status: result.status,
+      stats: result.stats,
+      note: result.note || result.error || null,
+    },
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      result,
+      `Task '${task}' ${dryRun ? "simulated (dry run)" : "executed"} successfully.`
     )
   );
 });

@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "seed:admin": "node src/scripts/seedAdmin.js"
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "cron:dry": "node src/scripts/runCron.js"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +28,7 @@
     "mongoose": "^9.11.2",
     "morgan": "^1.12.1",
     "multer": "^2.5.0",
+    "node-cron": "^3.0.3",
     "rate-limit-redis": "^6.0.2",
     "zod": "^4.6.7"
   },

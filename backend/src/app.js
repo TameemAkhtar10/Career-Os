@@ -16,6 +16,8 @@ import jobRoutes from "./routes/job.routes.js";
 import applicationRoutes from "./routes/application.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import accountRoutes from "./routes/account.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
+import cronRoutes from "./routes/cron.routes.js";
 
 const app = express();
 
@@ -75,6 +77,8 @@ app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/account", accountRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/cron", cronRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, _res, next) => {

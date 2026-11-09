@@ -8,6 +8,12 @@ export const ROUTES = {
   FORGOT_PASSWORD: "/forgot-password",
   RESET_PASSWORD: "/reset-password",
   ACCOUNT: "/account",
+  UNSUBSCRIBE: "/unsubscribe",
+  ABOUT: "/about",
+  FAQ: "/faq",
+  CONTACT: "/contact",
+  TERMS: "/terms",
+  PRIVACY: "/privacy",
   CANDIDATE: {
     APPLICATIONS: "/candidate/applications",
     PROFILE: "/candidate/profile",
@@ -24,6 +30,7 @@ export const ROUTES = {
     USERS: "/admin/users",
     JOBS: "/admin/jobs",
     AUDIT_LOGS: "/admin/audit-logs",
+    SCHEDULED_JOBS: "/admin/scheduled-jobs",
   },
   SYSTEM: {
     FORBIDDEN: "/403",

@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { env } from "./config/env.js";
 import { connectDB } from "./config/db.js";
 import { Otp } from "./models/otp.model.js";
+import { initScheduler, stopScheduler } from "./jobs/scheduler.js";
 import app from "./app.js";
 
 let server;
@@ -13,11 +14,14 @@ const start = async () => {
   server = app.listen(env.PORT, () => {
     console.log(`🚀 Server running on port ${env.PORT} [${env.NODE_ENV}]`);
   });
+
+  initScheduler();
 };
 
 // ── Graceful Shutdown ─────────────────────────────────────────────────────────
 const gracefulShutdown = (signal) => {
   console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+  stopScheduler();
 
   const forceExitTimer = setTimeout(() => {
     console.error("Forceful shutdown after 10s timeout.");

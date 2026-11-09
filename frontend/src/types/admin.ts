@@ -77,3 +77,32 @@ export interface AdminAuditLogsResponse {
   totalPages: number;
 }
 
+export interface CronRunStats {
+  eligible: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+}
+
+export interface CronRun {
+  _id: string;
+  task: string;
+  key: string;
+  status: "running" | "done" | "failed" | "skipped";
+  startedAt: string;
+  finishedAt: string | null;
+  stats: CronRunStats;
+  dryRun: boolean;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AdminCronRunsResponse {
+  runs: CronRun[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+

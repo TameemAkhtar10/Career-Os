@@ -1,5 +1,9 @@
 import { env } from "../config/env.js";
 import { ApiError } from "../utils/ApiError.js";
+import {
+  incrementDailyEmailCount,
+  hasReachedDailyCap,
+} from "./emailCap.service.js";
 
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 const TIMEOUT_MS = 10_000;
@@ -29,7 +33,7 @@ export const escapeHtml = (str) => {
  * Renders a responsive, branded HTML email using the Career OS design system:
  * Emerald Ink #064E3B, Champagne #F8E7C9, Cream #FFF8EC, Gold #C8963E.
  */
-const renderBrandedEmail = ({ title, heading, bodyHtml, ctaText, ctaUrl, footerNote }) => {
+const renderBrandedEmail = ({ title, heading, bodyHtml, ctaText, ctaUrl, footerNote, customFooterHtml }) => {
   const currentYear = new Date().getFullYear();
   const ctaButtonHtml = ctaUrl && ctaText
     ? `
@@ -44,7 +48,7 @@ const renderBrandedEmail = ({ title, heading, bodyHtml, ctaText, ctaUrl, footerN
 
   const footerExtra = footerNote
     ? `<p style="margin: 16px 0 0; font-size: 12px; line-height: 1.5; color: #6B7280;">${escapeHtml(footerNote)}</p>`
-    : "";
+    : customFooterHtml || "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -110,7 +114,7 @@ const renderBrandedEmail = ({ title, heading, bodyHtml, ctaText, ctaUrl, footerN
  * Accepts both htmlContent and textContent for plain-text fallback.
  * Throws ApiError(502) on non-2xx responses.
  */
-const brevoPost = async ({ sender, to, subject, htmlContent, textContent }) => {
+const brevoPost = async ({ sender, to, subject, htmlContent, textContent, headers }) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
@@ -130,6 +134,7 @@ const brevoPost = async ({ sender, to, subject, htmlContent, textContent }) => {
         subject,
         htmlContent,
         textContent,
+        ...(headers && { headers }),
       }),
     });
   } catch (err) {
@@ -146,6 +151,9 @@ const brevoPost = async ({ sender, to, subject, htmlContent, textContent }) => {
     console.error(`[email.service] Brevo ${res.status}: ${errBody}`);
     throw new ApiError(502, "Email could not be delivered. Please try again later.");
   }
+
+  // Count toward daily email quota
+  await incrementDailyEmailCount(to?.length || 1);
 };
 
 // ── Public Email APIs ─────────────────────────────────────────────────────────
@@ -381,4 +389,119 @@ export const sendRecruiterNewApplicantEmail = async (
     }),
     textContent,
   });
+};
+
+/**
+ * 5. Send scheduled digest email (Job digest, recruiter digest, profile nudge, job auto-close).
+ * Includes List-Unsubscribe headers, footer with unsubscribe & preferences links.
+ */
+export const sendScheduledDigestEmail = async ({
+  to,
+  toName,
+  subject,
+  heading,
+  bodyHtml,
+  textContent,
+  ctaText,
+  ctaUrl,
+  unsubscribeToken,
+  unsubscribeType,
+  footerReason,
+}) => {
+  assertConfig();
+
+  const frontendUrl = env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001";
+  const unsubscribeUrl = unsubscribeToken && unsubscribeType
+    ? `${frontendUrl}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}&type=${encodeURIComponent(unsubscribeType)}`
+    : `${frontendUrl}/account`;
+  const preferencesUrl = `${frontendUrl}/account`;
+
+  const reasonText = footerReason || "You received this email based on your Career OS notification preferences.";
+
+  const customFooterHtml = `
+    <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #E8D3AA; text-align: left; font-size: 12px; line-height: 1.6; color: #6B7280;">
+      <p style="margin: 0 0 6px;">${escapeHtml(reasonText)}</p>
+      <p style="margin: 0;">
+        <a href="${escapeHtml(unsubscribeUrl)}" style="color: #064E3B; text-decoration: underline; font-weight: 500;">Unsubscribe from this notification</a>
+        &nbsp;&bull;&nbsp;
+        <a href="${escapeHtml(preferencesUrl)}" style="color: #064E3B; text-decoration: underline; font-weight: 500;">Manage email preferences</a>
+      </p>
+    </div>
+  `;
+
+  const fullTextContent = `${textContent}\n\n---\n${reasonText}\nUnsubscribe: ${unsubscribeUrl}\nManage email preferences: ${preferencesUrl}\n\n© Career OS`;
+
+  const headers = {
+    "List-Unsubscribe": `<${unsubscribeUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+  };
+
+  await brevoPost({
+    sender: { email: env.EMAIL_FROM, name: "Career OS" },
+    to: [{ email: to, name: toName || "Career OS User" }],
+    subject,
+    htmlContent: renderBrandedEmail({
+      title: heading,
+      heading,
+      bodyHtml,
+      ctaText,
+      ctaUrl,
+      customFooterHtml,
+    }),
+    textContent: fullTextContent,
+    headers,
+  });
+};
+
+/**
+ * Helper to process batches with concurrency and a delay between batches.
+ * Failing emails do not stop the run.
+ * Checks daily email cap before each item/batch.
+ */
+export const sendBatchWithDelay = async ({
+  items,
+  sendItemFn,
+  concurrency = 5,
+  delayMs = 300,
+  checkCap = true,
+}) => {
+  const stats = { sent: 0, failed: 0, skipped: 0, capHit: false };
+
+  for (let i = 0; i < items.length; i += concurrency) {
+    if (checkCap) {
+      const capReached = await hasReachedDailyCap(1);
+      if (capReached) {
+        stats.capHit = true;
+        stats.skipped += items.length - i;
+        break;
+      }
+    }
+
+    const batch = items.slice(i, i + concurrency);
+    await Promise.all(
+      batch.map(async (item) => {
+        try {
+          if (checkCap) {
+            const reached = await hasReachedDailyCap(1);
+            if (reached) {
+              stats.capHit = true;
+              stats.skipped += 1;
+              return;
+            }
+          }
+          await sendItemFn(item);
+          stats.sent += 1;
+        } catch (err) {
+          console.error(`[email.service] Batch item failed:`, err.message);
+          stats.failed += 1;
+        }
+      })
+    );
+
+    if (i + concurrency < items.length && delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return stats;
 };

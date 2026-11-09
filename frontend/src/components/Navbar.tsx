@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "../providers/AuthProvider";
 import { useProfileMe } from "../features/profile/hooks/useProfile";
 import { RecruiterProfile } from "../types/profile";
@@ -34,10 +34,17 @@ const RecruiterAvatar: React.FC<{ initial: string }> = ({ initial }) => {
 export const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
+  const isFresherQuery = searchParams.get("fresher") === "true";
+  const isFresherActive = pathname === ROUTES.JOBS && isFresherQuery;
+  const isJobsActive = pathname.startsWith(ROUTES.JOBS) && !isFresherQuery;
+
   const isActive = (path: string) => {
+    if (path === ROUTES.JOBS) return isJobsActive;
+    if (path === "/jobs?fresher=true") return isFresherActive;
     if (path === "/" && pathname !== "/") return false;
     return pathname.startsWith(path);
   };
@@ -59,13 +66,19 @@ export const Navbar: React.FC = () => {
         <nav className="hidden md:flex items-center gap-1 lg:gap-2">
           {!isAuthenticated && (
             <>
-              <Link href={ROUTES.JOBS} className={navLinkClass(isActive(ROUTES.JOBS))}>
+              <Link href={ROUTES.JOBS} className={navLinkClass(isJobsActive)}>
                 Jobs
               </Link>
-              <Link href="/jobs?fresher=true" className={navLinkClass(false)}>
+              <Link href="/jobs?fresher=true" className={navLinkClass(isFresherActive)}>
                 For freshers
               </Link>
-              <Link href={ROUTES.LOGIN} className={navLinkClass(false)}>
+              <Link href={ROUTES.ABOUT} className={navLinkClass(isActive(ROUTES.ABOUT))}>
+                About
+              </Link>
+              <Link href={ROUTES.FAQ} className={navLinkClass(isActive(ROUTES.FAQ))}>
+                FAQ
+              </Link>
+              <Link href={ROUTES.LOGIN} className={navLinkClass(pathname.startsWith(ROUTES.LOGIN))}>
                 For recruiters
               </Link>
             </>
@@ -253,21 +266,35 @@ export const Navbar: React.FC = () => {
                 <Link
                   href={ROUTES.JOBS}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={navLinkClass(isActive(ROUTES.JOBS))}
+                  className={navLinkClass(isJobsActive)}
                 >
                   Jobs
                 </Link>
                 <Link
                   href="/jobs?fresher=true"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={navLinkClass(false)}
+                  className={navLinkClass(isFresherActive)}
                 >
                   For freshers
                 </Link>
                 <Link
+                  href={ROUTES.ABOUT}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={navLinkClass(isActive(ROUTES.ABOUT))}
+                >
+                  About
+                </Link>
+                <Link
+                  href={ROUTES.FAQ}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={navLinkClass(isActive(ROUTES.FAQ))}
+                >
+                  FAQ
+                </Link>
+                <Link
                   href={ROUTES.LOGIN}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={navLinkClass(false)}
+                  className={navLinkClass(pathname.startsWith(ROUTES.LOGIN))}
                 >
                   For recruiters
                 </Link>

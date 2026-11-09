@@ -56,8 +56,8 @@ export const applicationsApi = {
       body: JSON.stringify({ status, recruiterNote }),
     }),
 
-  getApplicationResume: (id: string): Promise<ApiResponse<{ resumeUrl: string; candidateName: string }>> =>
-    apiClient<{ resumeUrl: string; candidateName: string }>(`/api/applications/${id}/resume`, {
+  getApplicationResume: (id: string): Promise<ApiResponse<{ url: string; fileName: string }>> =>
+    apiClient<{ url: string; fileName: string }>(`/api/applications/${id}/resume`, {
       method: "GET",
     }),
 };

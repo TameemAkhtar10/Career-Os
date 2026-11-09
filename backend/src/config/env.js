@@ -44,4 +44,14 @@ export const env = {
   IMAGEKIT_PUBLIC_KEY: _optional("IMAGEKIT_PUBLIC_KEY"),
   IMAGEKIT_PRIVATE_KEY: _optional("IMAGEKIT_PRIVATE_KEY"),
   IMAGEKIT_URL_ENDPOINT: _optional("IMAGEKIT_URL_ENDPOINT"),
+
+  // Scheduled Emails & Cron (all optional, CRON_SECRET validated on cron endpoints)
+  CRON_SECRET: _optional("CRON_SECRET"),
+  ENABLE_INTERNAL_CRON: process.env.ENABLE_INTERNAL_CRON === "true",
+  CRON_TIMEZONE: _optional("CRON_TIMEZONE", "Asia/Kolkata"),
+  JOB_DIGEST_CRON: _optional("JOB_DIGEST_CRON", "0 9 * * *"),
+  RECRUITER_DIGEST_CRON: _optional("RECRUITER_DIGEST_CRON", "0 18 * * *"),
+  JOB_CLOSE_CRON: _optional("JOB_CLOSE_CRON", "30 0 * * *"),
+  PROFILE_NUDGE_CRON: _optional("PROFILE_NUDGE_CRON", "0 11 * * 1"),
+  EMAIL_DAILY_CAP: parseInt(_optional("EMAIL_DAILY_CAP", "250"), 10) || 250,
 };

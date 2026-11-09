@@ -210,6 +210,24 @@ export const RegisterPage: React.FC = () => {
             <span>Create Account</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
+
+          <p className="text-[11px] text-center text-muted mt-3 leading-normal">
+            By creating an account you agree to our{" "}
+            <Link
+              href={ROUTES.TERMS}
+              className="text-emerald-dark font-medium underline hover:text-gold transition-colors"
+            >
+              Terms
+            </Link>{" "}
+            and{" "}
+            <Link
+              href={ROUTES.PRIVACY}
+              className="text-emerald-dark font-medium underline hover:text-gold transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </form>
 
         <div className="mt-6 text-center text-xs text-muted">

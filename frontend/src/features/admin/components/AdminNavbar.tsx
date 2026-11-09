@@ -5,12 +5,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../../../providers/AuthProvider";
 import { ROUTES } from "../../../constants/routes";
-import { LayoutDashboard, Users, Briefcase, ScrollText, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Briefcase, ScrollText, Clock, Settings, LogOut } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: ROUTES.ADMIN.ROOT, label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: ROUTES.ADMIN.USERS, label: "Users", icon: Users, exact: false },
   { href: ROUTES.ADMIN.JOBS, label: "Jobs", icon: Briefcase, exact: false },
+  { href: ROUTES.ADMIN.SCHEDULED_JOBS, label: "Scheduled Jobs", icon: Clock, exact: false },
   { href: ROUTES.ADMIN.AUDIT_LOGS, label: "Audit Log", icon: ScrollText, exact: false },
   { href: ROUTES.ACCOUNT, label: "Account", icon: Settings, exact: false },
 ];
