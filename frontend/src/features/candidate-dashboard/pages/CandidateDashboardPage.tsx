@@ -358,7 +358,7 @@ export const CandidateDashboardPage: React.FC = () => {
               {recentApplications.map((app) => {
                 let statusBadge = <Badge variant="outline">{app.status}</Badge>;
                 if (app.status === "shortlisted") statusBadge = <Badge variant="success">Shortlisted</Badge>;
-                if (app.status === "rejected") statusBadge = <Badge variant="danger">Rejected</Badge>;
+                if (app.status === "rejected") statusBadge = <Badge variant="error">Rejected</Badge>;
                 if (app.status === "hired") statusBadge = <Badge variant="fresher">Hired</Badge>;
 
                 return (
