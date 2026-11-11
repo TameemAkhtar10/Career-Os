@@ -51,6 +51,8 @@ export const LoginPage: React.FC = () => {
           router.push(nextUrl);
         } else if (res.data.user.role === "recruiter") {
           router.push(ROUTES.RECRUITER.DASHBOARD);
+        } else if (res.data.user.role === "candidate") {
+          router.push(ROUTES.CANDIDATE.DASHBOARD);
         } else {
           router.push(ROUTES.JOBS);
         }

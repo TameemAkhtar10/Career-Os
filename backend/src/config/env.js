@@ -54,4 +54,14 @@ export const env = {
   JOB_CLOSE_CRON: _optional("JOB_CLOSE_CRON", "30 0 * * *"),
   PROFILE_NUDGE_CRON: _optional("PROFILE_NUDGE_CRON", "0 11 * * 1"),
   EMAIL_DAILY_CAP: parseInt(_optional("EMAIL_DAILY_CAP", "250"), 10) || 250,
+
+  // AI Resume Checker (optional at startup, validated lazily on first call)
+  AI_PROVIDER: _optional("AI_PROVIDER", "mistral"),
+  MISTRAL_API_KEY: _optional("MISTRAL_API_KEY"),
+  MISTRAL_MODEL: _optional("MISTRAL_MODEL", "mistral-small-latest"),
+  GEMINI_API_KEY: _optional("GEMINI_API_KEY"),
+  GEMINI_MODEL: _optional("GEMINI_MODEL", "gemini-1.5-flash"),
+  GROQ_API_KEY: _optional("GROQ_API_KEY"),
+  GROQ_MODEL: _optional("GROQ_MODEL"),
+  RESUME_ANALYSIS_DAILY_LIMIT: parseInt(_optional("RESUME_ANALYSIS_DAILY_LIMIT", "5"), 10) || 5,
 };

@@ -86,8 +86,20 @@ export const Navbar: React.FC = () => {
 
           {isAuthenticated && user?.role === "candidate" && (
             <>
+              <Link
+                href={ROUTES.CANDIDATE.DASHBOARD}
+                className={navLinkClass(isActive(ROUTES.CANDIDATE.DASHBOARD))}
+              >
+                Dashboard
+              </Link>
               <Link href={ROUTES.JOBS} className={navLinkClass(isActive(ROUTES.JOBS))}>
                 Jobs
+              </Link>
+              <Link
+                href={ROUTES.CANDIDATE.RESUME_CHECK}
+                className={navLinkClass(isActive(ROUTES.CANDIDATE.RESUME_CHECK))}
+              >
+                Resume score
               </Link>
               <Link
                 href={ROUTES.CANDIDATE.APPLICATIONS}
@@ -181,6 +193,20 @@ export const Navbar: React.FC = () => {
                   </div>
                   {user?.role === "candidate" && (
                     <>
+                      <Link
+                        href={ROUTES.CANDIDATE.DASHBOARD}
+                        className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
+                      >
+                        <Briefcase className="w-3.5 h-3.5" />
+                        Dashboard
+                      </Link>
+                      <Link
+                        href={ROUTES.CANDIDATE.RESUME_CHECK}
+                        className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
+                      >
+                        <UserIcon className="w-3.5 h-3.5" />
+                        Resume Score
+                      </Link>
                       <Link
                         href={ROUTES.CANDIDATE.PROFILE}
                         className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
@@ -316,11 +342,25 @@ export const Navbar: React.FC = () => {
                 {user?.role === "candidate" && (
                   <>
                     <Link
+                      href={ROUTES.CANDIDATE.DASHBOARD}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive(ROUTES.CANDIDATE.DASHBOARD))}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
                       href={ROUTES.JOBS}
                       onClick={() => setMobileMenuOpen(false)}
                       className={navLinkClass(isActive(ROUTES.JOBS))}
                     >
                       Jobs
+                    </Link>
+                    <Link
+                      href={ROUTES.CANDIDATE.RESUME_CHECK}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive(ROUTES.CANDIDATE.RESUME_CHECK))}
+                    >
+                      Resume score
                     </Link>
                     <Link
                       href={ROUTES.CANDIDATE.APPLICATIONS}

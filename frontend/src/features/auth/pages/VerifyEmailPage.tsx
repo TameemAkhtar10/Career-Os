@@ -57,6 +57,8 @@ export const VerifyEmailPage: React.FC = () => {
         toast.success(res.message || "Email verified! You are now logged in.");
         if (res.data.user.role === "recruiter") {
           router.push(ROUTES.RECRUITER.DASHBOARD);
+        } else if (res.data.user.role === "candidate") {
+          router.push(ROUTES.CANDIDATE.DASHBOARD);
         } else {
           router.push(ROUTES.JOBS);
         }

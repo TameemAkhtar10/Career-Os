@@ -15,6 +15,8 @@ export const ROUTES = {
   TERMS: "/terms",
   PRIVACY: "/privacy",
   CANDIDATE: {
+    DASHBOARD: "/candidate/dashboard",
+    RESUME_CHECK: "/candidate/resume-check",
     APPLICATIONS: "/candidate/applications",
     PROFILE: "/candidate/profile",
   },

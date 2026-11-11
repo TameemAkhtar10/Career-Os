@@ -51,6 +51,22 @@ const userSchema = new mongoose.Schema(
         default: true,
       },
     },
+    aiConsent: {
+      resumeAnalysis: {
+        granted: {
+          type: Boolean,
+          default: false,
+        },
+        at: {
+          type: Date,
+          default: null,
+        },
+        version: {
+          type: String,
+          default: null,
+        },
+      },
+    },
     // Bcrypt hash of the current refresh token — used for rotation & reuse detection.
     // select:false so it is never returned in queries unless explicitly requested.
     refreshTokenHash: {
@@ -79,5 +95,7 @@ userSchema.methods.compareRefreshToken = async function (token) {
   if (!this.refreshTokenHash) return false;
   return bcrypt.compare(token, this.refreshTokenHash);
 };
+
+export const CONSENT_VERSION = "1.0";
 
 export const User = mongoose.model("User", userSchema);

@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useRef, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUploadResume, useDeleteResume } from "../hooks/useProfile";
 import { profileApi } from "../services/profile.api";
@@ -8,8 +10,9 @@ import { ResumeInfo } from "../../../types/profile";
 import { ApiClientError } from "../../../config/api";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
+import { ROUTES } from "../../../constants/routes";
 import { toast } from "sonner";
-import { FileText, Upload, Eye, Trash2, RefreshCw } from "lucide-react";
+import { FileText, Upload, Eye, Trash2, RefreshCw, Sparkles, ArrowRight } from "lucide-react";
 
 interface ResumeCardProps {
   resume?: ResumeInfo;
@@ -37,6 +40,7 @@ const UPLOAD_ERROR_MAP: Record<number, string> = {
 };
 
 export const ResumeCard: React.FC<ResumeCardProps> = ({ resume }) => {
+  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
   const uploadMutation = useUploadResume();
@@ -70,7 +74,12 @@ export const ResumeCard: React.FC<ResumeCardProps> = ({ resume }) => {
         file,
         onProgress: (pct) => setProgress(pct),
       });
-      toast.success("Resume uploaded successfully.");
+      toast.success("Resume uploaded successfully.", {
+        action: {
+          label: "Check Resume Score",
+          onClick: () => router.push(ROUTES.CANDIDATE.RESUME_CHECK),
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["profile", "me"] });
     } catch (err) {
       if (err instanceof ApiClientError) {
@@ -168,6 +177,24 @@ export const ResumeCard: React.FC<ResumeCardProps> = ({ resume }) => {
               <Trash2 className="w-3.5 h-3.5" /> Delete
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Inline CTA to Resume Score Checker */}
+      {hasResume && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-ui bg-gradient-to-r from-emerald/10 via-champagne/40 to-gold/10 border border-gold/30">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-gold shrink-0" />
+            <p className="text-xs text-emerald-dark font-medium leading-relaxed">
+              Check how your resume scores against industry standards and target job roles with AI feedback.
+            </p>
+          </div>
+          <Link href={ROUTES.CANDIDATE.RESUME_CHECK} className="shrink-0 w-full sm:w-auto">
+            <Button variant="primary" size="sm" className="w-full text-xs gap-1.5 shadow-emerald-sm">
+              <span>Check resume score</span>
+              <ArrowRight className="w-3 h-3 text-gold-light" />
+            </Button>
+          </Link>
         </div>
       )}
 

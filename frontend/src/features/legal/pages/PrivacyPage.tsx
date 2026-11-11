@@ -11,7 +11,7 @@ import { ROUTES } from "../../../constants/routes";
 import { Shield, Lock, Eye, Download, Trash2, Mail, Cookie } from "lucide-react";
 
 export const PrivacyPage: React.FC = () => {
-  const lastUpdated = "November 9, 2026";
+  const lastUpdated = "November 10, 2026";
 
   return (
     <div className="min-h-screen bg-champagne/40 py-12 px-4 sm:px-6 lg:px-8">
@@ -72,6 +72,19 @@ export const PrivacyPage: React.FC = () => {
                 records, skill tags, project details, and external portfolio links (GitHub, LinkedIn).
                 PDF resumes uploaded to the platform are stored securely using cloud storage and are only
                 retrieved when you view them or when an authorized recruiter evaluates your active application.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-emerald-dark mb-1">C. Optional AI Resume Analysis</h3>
+              <p>
+                When candidates choose to run the optional AI Resume Score Checker, your resume is first strictly
+                redacted on our servers before any third-party transmission. Your name, email address, phone numbers,
+                all personal URLs (LinkedIn, GitHub), and street addresses are removed. Only this anonymized text is
+                sent to a third-party AI provider (currently Groq) to generate formatting structure tips and bullet point suggestions.
+                We never store raw resume text in the analysis database; only calculated scores, keyword presence lists,
+                and recommendations are retained for your private viewing. You may withdraw your AI consent at any time
+                from the Resume Checker history panel or permanently delete individual analyses or your entire account.
               </p>
             </div>
 

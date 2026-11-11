@@ -41,9 +41,14 @@ const FAQS: FaqItem[] = [
     category: "Candidates",
     question: "Who can view my resume, phone number, and contact details?",
     answer: (
-      <p>
-        Your contact details and uploaded resume are private. They are <strong>only shared with the specific recruiter</strong> whose job posting you submit an application to. We do not provide an open, searchable resume database, and we never sell your records to recruiters or third parties.
-      </p>
+      <div className="space-y-2">
+        <p>
+          Your contact details and uploaded resume are private. They are <strong>only shared with the specific recruiter</strong> whose job posting you submit an application to. We do not provide an open, searchable resume database, and we never sell your records to recruiters or third parties.
+        </p>
+        <p>
+          If you choose to use our optional <strong>Resume Score Checker</strong>, your resume text is first locally redacted to strip your name, email, phone number, personal links, and address. This redacted text is sent to a third-party AI provider (currently Groq) to generate constructive feedback and suggestions. We never store raw resume text in the analysis database; only the generated scores, keyword presence lists, and recommendations are saved for your review. You can withdraw your AI consent at any time from the scan history drawer or delete individual scans and all records from your account.
+        </p>
+      </div>
     ),
   },
   {

@@ -4,6 +4,8 @@ import { RecruiterProfile } from "../models/recruiterProfile.model.js";
 import { Job } from "../models/job.model.js";
 import { Application } from "../models/application.model.js";
 import { Otp } from "../models/otp.model.js";
+import { ResumeAnalysis } from "../models/ResumeAnalysis.js";
+import { ResumeAnalysisDailyCount } from "../models/ResumeAnalysisDailyCount.js";
 import { deleteFileFromImageKit } from "../services/imagekit.service.js";
 import { deleteResumeFromGridFS } from "../services/gridfs.service.js";
 import { clearAuthCookies } from "../services/token.service.js";
@@ -49,6 +51,8 @@ export const deleteAccount = asyncHandler(async (req, res) => {
       CandidateProfile.deleteOne({ user: userId }),
       Application.deleteMany({ candidate: userId }),
       Otp.deleteMany({ email: user.email }),
+      ResumeAnalysis.deleteMany({ user: userId }),
+      ResumeAnalysisDailyCount.deleteMany({ user: userId }),
       User.deleteOne({ _id: userId }),
     ]);
   } else if (user.role === "recruiter") {
@@ -101,15 +105,17 @@ export const exportAccountData = asyncHandler(async (req, res) => {
   };
 
   if (user.role === "candidate") {
-    const [profile, applications] = await Promise.all([
+    const [profile, applications, resumeAnalyses] = await Promise.all([
       CandidateProfile.findOne({ user: userId }).lean(),
       Application.find({ candidate: userId })
         .populate("job", "title companyName location jobType workMode status")
         .lean(),
+      ResumeAnalysis.find({ user: userId }).select("-__v").lean(),
     ]);
 
     exportData.profile = profile || null;
     exportData.applications = applications;
+    exportData.resumeAnalyses = resumeAnalyses;
   } else if (user.role === "recruiter") {
     const [profile, jobs] = await Promise.all([
       RecruiterProfile.findOne({ user: userId }).lean(),
