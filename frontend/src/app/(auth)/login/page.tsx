@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { LoginPage } from "../../../features/auth/pages/LoginPage";
+import { BrandLoader } from "@/components/feedback/BrandLoader";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -7,6 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <LoginPage />;
+  return (
+    <Suspense fallback={<BrandLoader message="Loading sign in..." />}>
+      <LoginPage />
+    </Suspense>
+  );
 }
 

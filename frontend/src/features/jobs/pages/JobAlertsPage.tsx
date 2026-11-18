@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useJobAlerts,
   useUpdateJobAlert,
@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner";
 
 export const JobAlertsPage: React.FC = () => {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const pauseToken = searchParams.get("pauseToken");
 
@@ -108,9 +109,9 @@ export const JobAlertsPage: React.FC = () => {
       {alerts.length === 0 ? (
         <EmptyState
           title="No job alerts created yet"
-          message="Filter jobs by role, location, or salary on the Jobs page, then click 'Create alert from this search' to never miss a fresh opening."
-          actionText="Search Jobs & Set Alert"
-          actionHref={ROUTES.JOBS}
+          description="Filter jobs by role, location, or salary on the Jobs page, then click 'Create alert from this search' to never miss a fresh opening."
+          actionLabel="Search Jobs & Set Alert"
+          onAction={() => router.push(ROUTES.JOBS)}
         />
       ) : (
         <div className="space-y-4">

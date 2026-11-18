@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { SavedJobsPage } from "@/features/jobs/pages/SavedJobsPage";
+import { BrandLoader } from "@/components/feedback/BrandLoader";
 
 export const metadata: Metadata = {
   title: "Saved Jobs",
@@ -8,5 +10,9 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <SavedJobsPage />;
+  return (
+    <Suspense fallback={<BrandLoader message="Loading saved jobs..." />}>
+      <SavedJobsPage />
+    </Suspense>
+  );
 }

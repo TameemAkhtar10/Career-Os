@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSavedJobsList, useToggleSaveJob } from "../hooks/useSavedJobs";
 import { formatSalary } from "../utils";
 import { Card } from "../../../components/ui/Card";
@@ -23,6 +24,7 @@ import {
 } from "lucide-react";
 
 export const SavedJobsPage: React.FC = () => {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const { data, isLoading } = useSavedJobsList(page, 10);
   const toggleSave = useToggleSaveJob();
@@ -63,9 +65,9 @@ export const SavedJobsPage: React.FC = () => {
       {items.length === 0 ? (
         <EmptyState
           title="No saved jobs yet"
-          message="Bookmark opportunities while browsing to compare packages, review required skills, and apply when ready."
-          actionText="Explore Open Jobs"
-          actionHref={ROUTES.JOBS}
+          description="Bookmark opportunities while browsing to compare packages, review required skills, and apply when ready."
+          actionLabel="Explore Open Jobs"
+          onAction={() => router.push(ROUTES.JOBS)}
         />
       ) : (
         <div className="space-y-4">

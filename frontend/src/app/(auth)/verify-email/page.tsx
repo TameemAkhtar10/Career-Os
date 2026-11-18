@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { VerifyEmailPage } from "../../../features/auth/pages/VerifyEmailPage";
+import { BrandLoader } from "@/components/feedback/BrandLoader";
 
 export const metadata: Metadata = {
   title: "Verify Email",
@@ -7,6 +9,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <VerifyEmailPage />;
+  return (
+    <Suspense fallback={<BrandLoader message="Loading verification..." />}>
+      <VerifyEmailPage />
+    </Suspense>
+  );
 }
 
