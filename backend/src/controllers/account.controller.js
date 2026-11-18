@@ -6,6 +6,7 @@ import { Application } from "../models/application.model.js";
 import { Otp } from "../models/otp.model.js";
 import { ResumeAnalysis } from "../models/ResumeAnalysis.js";
 import { ResumeAnalysisDailyCount } from "../models/ResumeAnalysisDailyCount.js";
+import { CoverLetterDailyCount } from "../models/CoverLetterDailyCount.js";
 import { SavedJob } from "../models/savedJob.model.js";
 import { JobAlert } from "../models/jobAlert.model.js";
 import { deleteFileFromImageKit } from "../services/imagekit.service.js";
@@ -66,6 +67,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
       Otp.deleteMany({ email: user.email }),
       ResumeAnalysis.deleteMany({ user: userId }),
       ResumeAnalysisDailyCount.deleteMany({ user: userId }),
+      CoverLetterDailyCount.deleteMany({ user: userId }),
       SavedJob.deleteMany({ user: userId }),
       JobAlert.deleteMany({ user: userId }),
       User.deleteOne({ _id: userId }),

@@ -17,6 +17,7 @@ import { BrandLoader } from "../../../components/feedback/BrandLoader";
 import { ErrorState } from "../../../components/feedback/ErrorState";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { JobMatchCard } from "../components/JobMatchCard";
+import { CoverLetterModal } from "../components/CoverLetterModal";
 import { toast } from "sonner";
 import {
   Briefcase,
@@ -43,6 +44,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
   const { data: job, isLoading, isError, error } = useJobDetail(jobId, initialJob);
 
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+  const [isCoverLetterOpen, setIsCoverLetterOpen] = useState(false);
   const [coverNote, setCoverNote] = useState("");
   const [hasAppliedLocal, setHasAppliedLocal] = useState(false);
 
@@ -376,6 +378,27 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
                   </Button>
                 )}
 
+                {/* AI Cover Letter Button (Candidate Only, Job Open) */}
+                {!isClosed && (!isAuthenticated || isCandidate) && (
+                  <div className="mt-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          router.push(`/login?next=/jobs/${job._id}`);
+                          return;
+                        }
+                        setIsCoverLetterOpen(true);
+                      }}
+                      className="w-full gap-2 text-xs border-gold-accent/40 hover:border-gold-accent hover:bg-gold-accent/5 text-emerald-ink font-semibold"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-gold-accent" />
+                      Write a cover letter
+                    </Button>
+                  </div>
+                )}
+
                 {!isAuthenticated && (
                   <p className="text-[11px] text-center text-body-text/60 mt-3">
                     Don&apos;t have an account?{" "}
@@ -441,6 +464,15 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
           </div>
         </form>
       </Modal>
+
+      {/* AI Cover Letter Drawer/Modal */}
+      <CoverLetterModal
+        isOpen={isCoverLetterOpen}
+        onClose={() => setIsCoverLetterOpen(false)}
+        jobId={job._id}
+        jobTitle={job.title}
+        companyName={job.companyName}
+      />
     </>
   );
 };

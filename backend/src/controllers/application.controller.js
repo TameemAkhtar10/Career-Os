@@ -3,7 +3,10 @@ import { Application } from "../models/application.model.js";
 import { Job } from "../models/job.model.js";
 import { User } from "../models/user.model.js";
 import { CandidateProfile } from "../models/candidateProfile.model.js";
+import { ResumeAnalysis } from "../models/ResumeAnalysis.js";
 import { calculateCandidateCompleteness } from "./profile.controller.js";
+import { calculateExperienceYears } from "./job.controller.js";
+import { computeJobMatch } from "../utils/jobMatch.js";
 import {
   sendApplicationStatusEmail,
   sendApplicationConfirmationEmail,
@@ -12,7 +15,7 @@ import {
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { delByPrefix } from "../utils/cache.js";
+import { delByPrefix, getCache, setCache } from "../utils/cache.js";
 import {
   openResumeDownloadStream,
   findResumeFile,
@@ -208,18 +211,19 @@ export const withdrawApplication = asyncHandler(async (req, res) => {
 
 /**
  * GET /api/jobs/:jobId/applications (recruiter owner or admin)
- * Applicants with candidate name, headline, skills, matchScore, profileCompleteness, status.
- * Never returns candidate phone or email.
+ * Applicants with candidate name, headline, skills, matchScore, matchedSkills, missingSkills, profileCompleteness, status.
+ * Never returns candidate phone or email to recruiters.
+ * Supports sort=match|recent and minMatch (0-100).
  */
 export const getJobApplications = asyncHandler(async (req, res) => {
-  const { jobId } = req.params;
+  const jobId = req.params.jobId || req.params.id;
   const { status, minScore } = req.query;
 
   if (!mongoose.Types.ObjectId.isValid(jobId)) {
     throw new ApiError(400, "Invalid job ID.");
   }
 
-  const job = await Job.findById(jobId);
+  const job = await Job.findById(jobId).lean();
   if (!job) {
     throw new ApiError(404, "Job not found.");
   }
@@ -233,6 +237,25 @@ export const getJobApplications = asyncHandler(async (req, res) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
   const skip = (page - 1) * limit;
 
+  const sortOption = req.query.sort === "match" ? "match" : "recent";
+
+  let minMatchVal = null;
+  if (req.query.minMatch !== undefined && req.query.minMatch !== "") {
+    const parsed = Number(req.query.minMatch);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= 100) {
+      minMatchVal = parsed;
+    }
+  }
+
+  // Cache check per job + page + query parameters
+  const cacheKey = `cache:applications:job:${jobId}:p${page}:l${limit}:s${sortOption}:mm${minMatchVal ?? ""}:st${status || ""}:ms${minScore || ""}`;
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(
+      new ApiResponse(200, cached, "Job applications fetched successfully.")
+    );
+  }
+
   const filter = { job: jobId };
   if (status && ["applied", "shortlisted", "rejected", "hired", "withdrawn"].includes(status)) {
     filter.status = status;
@@ -244,32 +267,53 @@ export const getJobApplications = asyncHandler(async (req, res) => {
     }
   }
 
-  // Sort by matchScore desc by default
   const isAdmin = req.user.role === "admin";
-  const sort = { matchScore: -1, createdAt: -1 };
 
-  const [rawApplications, total] = await Promise.all([
-    Application.find(filter)
-      .populate("candidate", isAdmin ? "name email" : "name") // Recruiters NEVER get email or phone
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    Application.countDocuments(filter),
-  ]);
+  // Helper to load candidate profiles and latest resume keywords without N+1 queries
+  const loadProfilesAndResumeKeywords = async (candidateUserIds) => {
+    if (!candidateUserIds.length) {
+      return { profileMap: new Map(), resumeMap: new Map() };
+    }
+    const [profiles, latestResumeAnalyses] = await Promise.all([
+      CandidateProfile.find({ user: { $in: candidateUserIds } }).lean(),
+      ResumeAnalysis.aggregate([
+        { $match: { user: { $in: candidateUserIds } } },
+        { $sort: { createdAt: -1 } },
+        {
+          $group: {
+            _id: "$user",
+            keywords: { $first: "$keywords" },
+          },
+        },
+      ]),
+    ]);
 
-  // Fetch candidate profiles to extract headline, skills, and profileCompleteness
-  const candidateIds = rawApplications
-    .map((app) => app.candidate?._id || app.candidate)
-    .filter(Boolean);
+    const profileMap = new Map(profiles.map((p) => [String(p.user), p]));
+    const resumeMap = new Map(
+      latestResumeAnalyses.map((r) => [String(r._id), r.keywords?.present || []])
+    );
+    return { profileMap, resumeMap };
+  };
 
-  const profiles = await CandidateProfile.find({ user: { $in: candidateIds } }).lean();
-  const profileMap = new Map(profiles.map((p) => [String(p.user), p]));
+  // Helper to compute match score using ONLY skills, resume keywords, and experience level
+  // Never uses name, gender, age, college, location, or photo
+  const computeAppMatch = (candProfile, resumeKeywords) => {
+    const candidateSkills = candProfile?.skills || [];
+    const candidateExperienceYears = candProfile?.experience
+      ? calculateExperienceYears(candProfile.experience)
+      : null;
 
-  // Sanitize applicants: return name, headline, skills, matchScore, profileCompleteness, status
-  const applications = rawApplications.map((app) => {
-    const candId = String(app.candidate?._id || app.candidate);
-    const candProfile = profileMap.get(candId);
+    return computeJobMatch({
+      candidateSkills,
+      resumeSkills: resumeKeywords || [],
+      jobSkills: job.skills || [],
+      jobDescription: job.description || "",
+      candidateExperienceYears,
+      job,
+    });
+  };
+
+  const sanitizeApplication = (app, candProfile, matchResult) => {
     const profileCompleteness = candProfile
       ? calculateCandidateCompleteness(candProfile)
       : 0;
@@ -282,7 +326,6 @@ export const getJobApplications = asyncHandler(async (req, res) => {
       profileCompleteness,
     };
 
-    // Only admin may see candidate email and phone
     if (isAdmin) {
       if (app.candidate?.email) candidateData.email = app.candidate.email;
       if (candProfile?.phone) candidateData.phone = candProfile.phone;
@@ -293,7 +336,9 @@ export const getJobApplications = asyncHandler(async (req, res) => {
       job: app.job,
       status: app.status,
       coverNote: app.coverNote,
-      matchScore: app.matchScore,
+      matchScore: matchResult.matchScore,
+      matchedSkills: (matchResult.matchedSkills || []).slice(0, 8),
+      missingSkills: (matchResult.missingSkills || []).slice(0, 8),
       hasResume: Boolean(candProfile?.resume?.fileId),
       recruiterNote: app.recruiterNote,
       statusHistory: app.statusHistory,
@@ -301,16 +346,111 @@ export const getJobApplications = asyncHandler(async (req, res) => {
       updatedAt: app.updatedAt,
       candidate: candidateData,
     };
-  });
+  };
 
-  const totalPages = Math.ceil(total / limit) || 1;
+  let applications = [];
+  let total = 0;
+  let totalPages = 1;
+  let matchSortCapped = false;
+
+  const totalMatching = await Application.countDocuments(filter);
+
+  if ((sortOption === "match" || minMatchVal !== null) && totalMatching <= 500) {
+    // Up to 500 applications: compute match scores across the filtered set
+    const rawApplications = await Application.find(filter)
+      .populate("candidate", isAdmin ? "name email" : "name")
+      .sort({ createdAt: -1 })
+      .limit(500)
+      .lean();
+
+    const candidateIds = rawApplications
+      .map((app) => app.candidate?._id || app.candidate)
+      .filter(Boolean);
+
+    const { profileMap, resumeMap } = await loadProfilesAndResumeKeywords(candidateIds);
+
+    let scoredApps = rawApplications.map((app) => {
+      const candId = String(app.candidate?._id || app.candidate);
+      const candProfile = profileMap.get(candId);
+      const resumeKeywords = resumeMap.get(candId) || [];
+      const matchResult = computeAppMatch(candProfile, resumeKeywords);
+      return sanitizeApplication(app, candProfile, matchResult);
+    });
+
+    // Filter by minMatch if provided
+    if (minMatchVal !== null) {
+      scoredApps = scoredApps.filter(
+        (app) => app.matchScore !== null && app.matchScore >= minMatchVal
+      );
+    }
+
+    // Sort: match descending with null scores last, tie-break by recent
+    if (sortOption === "match") {
+      scoredApps.sort((a, b) => {
+        if (a.matchScore === null && b.matchScore === null) {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+        if (a.matchScore === null) return 1;
+        if (b.matchScore === null) return -1;
+        if (b.matchScore !== a.matchScore) {
+          return b.matchScore - a.matchScore;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else {
+      scoredApps.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }
+
+    total = scoredApps.length;
+    totalPages = Math.ceil(total / limit) || 1;
+    applications = scoredApps.slice(skip, skip + limit);
+  } else {
+    // If sort=match was requested but total count > 500: fall back to recent and flag matchSortCapped
+    if (sortOption === "match" && totalMatching > 500) {
+      matchSortCapped = true;
+    }
+
+    total = totalMatching;
+    totalPages = Math.ceil(total / limit) || 1;
+
+    const rawApplications = await Application.find(filter)
+      .populate("candidate", isAdmin ? "name email" : "name")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const candidateIds = rawApplications
+      .map((app) => app.candidate?._id || app.candidate)
+      .filter(Boolean);
+
+    const { profileMap, resumeMap } = await loadProfilesAndResumeKeywords(candidateIds);
+
+    applications = rawApplications.map((app) => {
+      const candId = String(app.candidate?._id || app.candidate);
+      const candProfile = profileMap.get(candId);
+      const resumeKeywords = resumeMap.get(candId) || [];
+      const matchResult = computeAppMatch(candProfile, resumeKeywords);
+      return sanitizeApplication(app, candProfile, matchResult);
+    });
+  }
+
+  const responsePayload = {
+    applications,
+    page,
+    limit,
+    total,
+    totalPages,
+    ...(matchSortCapped ? { matchSortCapped: true } : {}),
+  };
+
+  // Cache response for 60 seconds
+  await setCache(cacheKey, responsePayload, 60);
 
   res.status(200).json(
-    new ApiResponse(
-      200,
-      { applications, page, limit, total, totalPages },
-      "Job applications fetched successfully."
-    )
+    new ApiResponse(200, responsePayload, "Job applications fetched successfully.")
   );
 });
 

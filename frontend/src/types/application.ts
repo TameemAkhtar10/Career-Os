@@ -21,7 +21,9 @@ export interface Application {
   recruiter: string;
   status: ApplicationStatus;
   coverNote: string;
-  matchScore: number;
+  matchScore: number | null;
+  matchedSkills?: string[];
+  missingSkills?: string[];
   recruiterNote?: string;
   hasResume?: boolean;
   statusHistory: StatusHistoryItem[];
@@ -35,5 +37,6 @@ export interface ApplicationsResponseData {
   limit: number;
   total: number;
   totalPages: number;
+  matchSortCapped?: boolean;
 }
 

@@ -81,6 +81,8 @@ export const useJobApplications = (
   jobId: string,
   params: {
     status?: string;
+    sort?: "match" | "recent";
+    minMatch?: number;
     minScore?: number;
     page?: number;
     limit?: number;

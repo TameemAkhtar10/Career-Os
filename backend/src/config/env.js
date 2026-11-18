@@ -67,4 +67,5 @@ export const env = {
   GROQ_API_KEY: _optional("GROQ_API_KEY"),
   GROQ_MODEL: _optional("GROQ_MODEL"),
   RESUME_ANALYSIS_DAILY_LIMIT: parseInt(_optional("RESUME_ANALYSIS_DAILY_LIMIT", "5"), 10) || 5,
+  COVER_LETTER_DAILY_LIMIT: parseInt(_optional("COVER_LETTER_DAILY_LIMIT", "5"), 10) || 5,
 };

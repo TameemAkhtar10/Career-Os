@@ -46,7 +46,7 @@ const FAQS: FaqItem[] = [
           Your contact details and uploaded resume are private. They are <strong>only shared with the specific recruiter</strong> whose job posting you submit an application to. We do not provide an open, searchable resume database, and we never sell your records to recruiters or third parties.
         </p>
         <p>
-          If you choose to use our optional <strong>Resume Score Checker</strong>, your resume text is first locally redacted to strip your name, email, phone number, personal links, and address. This redacted text is sent to a third-party AI provider (currently Groq) to generate constructive feedback and suggestions. We never store raw resume text in the analysis database; only the generated scores, keyword presence lists, and recommendations are saved for your review. You can withdraw your AI consent at any time from the scan history drawer or delete individual scans and all records from your account.
+          If you choose to use our optional <strong>Resume Score Checker</strong> or <strong>AI Cover Letter</strong>, your resume text is first strictly redacted to strip your name, email, phone number, personal links, and address before any third-party AI processing. The AI cover letter feature uses the same redacted-resume AI processing to generate personalized drafts; generated letters are never stored by us. You can withdraw your AI consent at any time from the Resume Checker history panel or delete all records from your account, which covers both features.
         </p>
       </div>
     ),
@@ -57,9 +57,22 @@ const FAQS: FaqItem[] = [
     answer: (
       <p>
         The match score is calculated transparently by comparing the skills listed on your candidate
-        profile with the required skill tags on the job listing. Having relevant skills listed directly
-        enhances your match percentage, helping both you and the recruiter evaluate mutual alignment.
+        profile with the required skill tags on the job listing. Recruiters see an automated skills match estimate for applicants based on skills and resume keywords to assist manual review; this estimate is purely advisory and never automatically rejects anyone.
       </p>
+    ),
+  },
+  {
+    category: "Candidates",
+    question: "How does the AI Cover Letter feature work?",
+    answer: (
+      <div className="space-y-2">
+        <p>
+          On any open job listing, candidates can click <strong>&quot;Write a cover letter&quot;</strong> to generate a customized draft in a professional, friendly, or concise tone.
+        </p>
+        <p>
+          The feature uses the same privacy-preserving, redacted-resume AI processing as our Resume Checker. No personal contact details are ever sent to the AI, and we never store your cover letter or resume text on our servers. You can edit the text, copy it, or download it as a .txt file. Withdrawing AI consent from your Resume Checker history or Account Settings immediately revokes access for both features.
+        </p>
+      </div>
     ),
   },
   {
@@ -176,6 +189,9 @@ export const FaqPage: React.FC = () => {
           </h1>
           <p className="text-sm text-body/80 leading-relaxed">
             Honest, straightforward answers about how Career OS works for candidates, recruiters, and hiring managers.
+          </p>
+          <p className="text-xs text-muted">
+            Last updated: <span className="text-body font-medium">November 18, 2026</span>
           </p>
         </div>
 

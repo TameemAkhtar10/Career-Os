@@ -83,15 +83,16 @@ export const PrivacyPage: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold text-emerald-dark mb-1">C. Optional AI Resume Analysis</h3>
+              <h3 className="font-semibold text-emerald-dark mb-1">C. Optional AI Features (Resume Checker &amp; Cover Letter)</h3>
               <p>
-                When candidates choose to run the optional AI Resume Score Checker, your resume is first strictly
+                When candidates choose to run the optional AI Resume Score Checker or generate an AI Cover Letter, your resume is first strictly
                 redacted on our servers before any third-party transmission. Your name, email address, phone numbers,
                 all personal URLs (LinkedIn, GitHub), and street addresses are removed. Only this anonymized text is
-                sent to a third-party AI provider (currently Groq) to generate formatting structure tips and bullet point suggestions.
+                sent to a third-party AI provider to generate formatting tips, bullet point suggestions, or tailored draft letters.
+                The AI cover letter uses the same redacted-resume AI processing, and generated letters are never stored on our servers.
                 We never store raw resume text in the analysis database; only calculated scores, keyword presence lists,
                 and recommendations are retained for your private viewing. You may withdraw your AI consent at any time
-                from the Resume Checker history panel or permanently delete individual analyses or your entire account.
+                from the Resume Checker history panel or Account Settings; withdrawing AI consent immediately covers both resume analysis and cover letter generation.
               </p>
             </div>
 
@@ -125,6 +126,7 @@ export const PrivacyPage: React.FC = () => {
               <strong>Strict Applicant-Only Recruiter Access:</strong> Recruiters can <em>only</em> access the
               profile, contact details, and resume of candidates who have actively submitted an application
               for their specific job opening. We do not provide a searchable public directory of candidate resumes.
+              Recruiters see an automated skills match estimate for each applicant based on skills and resume keywords, which is strictly advisory and never automatically rejects any candidate.
             </p>
             <p>
               <strong>Open To Work Setting:</strong> Candidates can toggle their availability status in their

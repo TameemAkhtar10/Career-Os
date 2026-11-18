@@ -28,6 +28,8 @@ export const applicationsApi = {
     jobId: string,
     params: {
       status?: string;
+      sort?: "match" | "recent";
+      minMatch?: number;
       minScore?: number;
       page?: number;
       limit?: number;
@@ -35,6 +37,8 @@ export const applicationsApi = {
   ): Promise<ApiResponse<ApplicationsResponseData>> => {
     const searchParams = new URLSearchParams();
     if (params.status) searchParams.set("status", params.status);
+    if (params.sort) searchParams.set("sort", params.sort);
+    if (params.minMatch != null) searchParams.set("minMatch", String(params.minMatch));
     if (params.minScore != null) searchParams.set("minScore", String(params.minScore));
     if (params.page) searchParams.set("page", String(params.page));
     if (params.limit) searchParams.set("limit", String(params.limit));

@@ -263,8 +263,9 @@ export const updateJob = asyncHandler(async (req, res) => {
     runValidators: true,
   });
 
-  // Invalidate all job caches
+  // Invalidate all job and application caches
   await delByPrefix("cache:jobs:");
+  await delByPrefix("cache:applications:");
 
   res.status(200).json(new ApiResponse(200, updatedJob, "Job updated successfully."));
 });
@@ -293,8 +294,9 @@ export const updateJobStatus = asyncHandler(async (req, res) => {
   job.status = status;
   await job.save();
 
-  // Invalidate all job caches
+  // Invalidate all job and application caches
   await delByPrefix("cache:jobs:");
+  await delByPrefix("cache:applications:");
 
   res.status(200).json(new ApiResponse(200, job, "Job status updated successfully."));
 });
@@ -325,8 +327,9 @@ export const deleteJob = asyncHandler(async (req, res) => {
   job.status = "closed";
   await job.save();
 
-  // Invalidate all job caches
+  // Invalidate all job and application caches
   await delByPrefix("cache:jobs:");
+  await delByPrefix("cache:applications:");
 
   res.status(200).json(new ApiResponse(200, null, "Job closed successfully."));
 });
