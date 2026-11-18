@@ -12,12 +12,14 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
+  googleSignInSchema,
 } from "../validators/auth.schemas.js";
 import {
   register,
   verifyEmail,
   resendOtp,
   login,
+  googleSignIn,
   refresh,
   logout,
   forgotPassword,
@@ -55,6 +57,7 @@ router.post("/register",        otpLimiter,  validate(registerSchema),        re
 router.post("/verify-email",    authLimiter, validate(verifyEmailSchema),     verifyEmail);
 router.post("/resend-otp",      otpLimiter,  validate(resendOtpSchema),       resendOtp);
 router.post("/login",           authLimiter, validate(loginSchema),           login);
+router.post("/google",          authLimiter, validate(googleSignInSchema),     googleSignIn);
 router.post("/refresh",         authLimiter,                                  refresh);
 router.post("/logout",          authLimiter,                                  logout);
 router.post("/forgot-password", otpLimiter,  validate(forgotPasswordSchema),  forgotPassword);

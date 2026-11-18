@@ -15,6 +15,7 @@ import {
   getMyJobs,
   getPublicJobs,
   getJobById,
+  getJobMatch,
   updateJob,
   updateJobStatus,
   deleteJob,
@@ -34,6 +35,16 @@ const applyLimiter = rateLimit({
   legacyHeaders: false,
   store: getRateLimitStore("rl:jobs:apply:"),
   message: { success: false, message: "Too many applications submitted. Please try again later." },
+});
+
+// Rate limiter for job match queries
+const matchLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: getRateLimitStore("rl:jobs:match:"),
+  message: { success: false, message: "Too many match requests. Please slow down." },
 });
 
 // ── GET /api/jobs/mine (recruiter only, must be before /:id) ─────────────────
@@ -65,6 +76,15 @@ router.post(
   authorizeRoles("candidate"),
   validate(applyJobSchema),
   applyToJob
+);
+
+// ── GET /api/jobs/:id/match (candidate only, rate-limited) ───────────────────
+router.get(
+  "/:id/match",
+  matchLimiter,
+  protect,
+  authorizeRoles("candidate"),
+  getJobMatch
 );
 
 // ── GET /api/jobs/:id (public, optional auth, cached 60s) ─────────────────────

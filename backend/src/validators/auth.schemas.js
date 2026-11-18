@@ -43,3 +43,12 @@ export const resetPasswordSchema = z.object({
     .regex(/^\d{6}$/, "OTP must be 6 digits"),
   newPassword: password,
 });
+
+export const googleSignInSchema = z.object({
+  credential: z.string().min(1, "Credential is required"),
+  role: z
+    .enum(["candidate", "recruiter"], {
+      errorMap: () => ({ message: "Role must be 'candidate' or 'recruiter'" }),
+    })
+    .optional(),
+});

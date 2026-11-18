@@ -5,8 +5,11 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  status?: string;
   isEmailVerified: boolean;
   createdAt: string;
+  authProviders?: string[];
+  googleLinked?: boolean;
 }
 
 export interface AuthState {

@@ -13,6 +13,7 @@ import {
   REFRESH_COOKIE,
 } from "../services/token.service.js";
 import { delCache } from "../utils/cache.js";
+import { verifyGoogleIdToken } from "../services/googleAuth.service.js";
 
 const REFRESH_SALT = 10;
 const USER_CACHE_KEY = (id) => `user:${id}`;
@@ -27,6 +28,8 @@ const _safeUser = (user) => ({
   status: user.status || "active",
   isEmailVerified: user.isEmailVerified,
   createdAt: user.createdAt,
+  authProviders: user.authProviders || (user.googleId ? ["google"] : ["password"]),
+  googleLinked: Boolean(user.googleId),
 });
 
 /**
@@ -231,6 +234,9 @@ export const resetPassword = asyncHandler(async (req, res) => {
   await verifyOtp(email, otp, "reset_password"); // throws on failure
 
   user.password = newPassword;   // pre-save hook will hash it
+  if (!user.authProviders?.includes("password")) {
+    user.authProviders = [...(user.authProviders || []), "password"];
+  }
   user.refreshTokenHash = null;  // invalidate all existing sessions
   await user.save();
 
@@ -238,6 +244,92 @@ export const resetPassword = asyncHandler(async (req, res) => {
   await delCache(USER_CACHE_KEY(user._id));
 
   res.status(200).json(new ApiResponse(200, null, "Password reset successfully. Please log in."));
+});
+
+export const googleSignIn = asyncHandler(async (req, res) => {
+  const { credential, role } = req.body;
+
+  // 1. Verify Google ID token (throws 401 on failure/mismatch/expired/email_verified !== true, 503 if unconfigured)
+  const payload = await verifyGoogleIdToken(credential);
+
+  // 2. Find user by googleId (sub) first, then by lowercased email
+  let user = await User.findOne({ googleId: payload.sub }).select("+refreshTokenHash +googleId");
+  let isNewUser = false;
+
+  if (!user) {
+    user = await User.findOne({ email: payload.email }).select("+password +refreshTokenHash +googleId");
+    if (user) {
+      // EXISTING user found by email with no googleId:
+      // When linking Google to an EXISTING user whose emailVerified is false,
+      // clear their password, remove "password" from authProviders, invalidate their refresh tokens/sessions.
+      // Verified users keep their password.
+      if (!user.isEmailVerified) {
+        user.password = undefined;
+        user.authProviders = (user.authProviders || []).filter((p) => p !== "password");
+        user.refreshTokenHash = null;
+      }
+      user.googleId = payload.sub;
+      user.isEmailVerified = true;
+      if (!user.authProviders?.includes("google")) {
+        user.authProviders = [...(user.authProviders || []), "google"];
+      }
+      await user.save();
+    }
+  }
+
+  // 3. Existing user rules
+  if (user) {
+    // Admin accounts must NOT be able to sign in with Google
+    if (user.role === "admin") {
+      console.warn("[auth:google] Error: blocked (admin account)");
+      throw new ApiError(403, "Admin accounts must use email and password.");
+    }
+
+    // Suspended accounts
+    if (user.status === "suspended") {
+      console.warn("[auth:google] Error: blocked (suspended user)");
+      throw new ApiError(403, "Your account has been suspended. Please contact support.");
+    }
+  } else {
+    // 4. NEW user (no match)
+    if (!role) {
+      return res.status(200).json(
+        new ApiResponse(200, { needsRole: true }, "Role selection required.")
+      );
+    }
+
+    if (role === "admin" || !["candidate", "recruiter"].includes(role)) {
+      throw new ApiError(400, "Role must be 'candidate' or 'recruiter'.");
+    }
+
+    user = await User.create({
+      name: payload.name || "User",
+      email: payload.email,
+      role,
+      isEmailVerified: true,
+      googleId: payload.sub,
+      authProviders: ["google"],
+    });
+
+    if (payload.picture && "avatar" in User.schema.paths) {
+      user.avatar = payload.picture;
+      await user.save();
+    }
+
+    isNewUser = true;
+  }
+
+  // 5. Issue session tokens and cookies (same as login)
+  await _issueAndRotate(res, user);
+  await delCache(USER_CACHE_KEY(user._id));
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      { user: _safeUser(user), isNewUser },
+      "Logged in successfully."
+    )
+  );
 });
 
 export const getMe = asyncHandler(async (req, res) => {

@@ -20,12 +20,13 @@ export const SCORING_RUBRIC = {
   impact: {
     metricWeight: 0.60,
     actionVerbWeight: 0.40,
-    // [share, points] piecewise linear breakpoints: 0%=0, 25%=40, 50%=70, 75%+=100
+    // [share, points] piecewise linear breakpoints: 0%=0, 25%=35, 50%=65, 75%=85, 100%=100
     shareCurve: [
       [0, 0],
-      [0.25, 40],
-      [0.50, 70],
-      [0.75, 100],
+      [0.25, 35],
+      [0.50, 65],
+      [0.75, 85],
+      [1.0, 100],
     ],
   },
   projectQuality: {
@@ -36,7 +37,7 @@ export const SCORING_RUBRIC = {
     avgBulletsPoints: 20,
     techStackPoints: 20,
     linkPoints: 15,
-    minMetricShareForFull: 0.5,
+    minMetricShareForFull: 0.8,
     metricsPoints: 15,
   },
   writingQuality: {
@@ -91,7 +92,8 @@ export const SCORING_RUBRIC = {
   },
   caps: {
     maxWithoutAllSubScores85: 92,
-    requiredSubScoreForTopBand: 85,
+    maxWithoutAllSubScores90: 92,
+    requiredSubScoreForTopBand: 90,
     maxIfImpactBelow30: 70,
     lowImpactThreshold: 30,
     maxIfFutureDates: 75,
@@ -311,7 +313,7 @@ function hasProjectLinkSignal(text) {
 /**
  * Checks whether a line is a Tech Stack / Built with / link-field metadata sub-line.
  */
-function isMetadataOrStackLine(line) {
+export function isMetadataOrStackLine(line) {
   if (!line) return false;
   if (COLON_METADATA_LINE_REGEX.test(line)) return true;
   if (
@@ -328,7 +330,7 @@ function isMetadataOrStackLine(line) {
 /**
  * Checks whether a line consists solely of URLs and/or clickable link label tokens (e.g. "Live | GitHub").
  */
-function isLinkOnlyMetadataLine(line) {
+export function isLinkOnlyMetadataLine(line) {
   if (!line || typeof line !== "string") return false;
   const cleaned = line
     .replace(ZERO_WIDTH_CHAR_REGEX, "")
@@ -347,6 +349,9 @@ function isLinkOnlyMetadataLine(line) {
     (tok) => LINK_ONLY_TOKEN_REGEX.test(tok) || PROJECT_URL_PATTERN_REGEX.test(tok)
   );
 }
+
+const METADATA_LABEL_COLON_REGEX =
+  /^(?:tech(?:\s*stack)?|technologies(?:\s*stack)?|tools(?:\s*used)?|built\s*with|stack|environment|skills?|languages?|frontend|backend|databases?|github|live|demo)$/i;
 
 /**
  * Identifies standard resume section headings after stripping icon-font and bullet glyphs.
@@ -388,10 +393,19 @@ export function detectSectionHeadingWithRemainder(line) {
   const words = cleaned.split(/\s+/);
   if (words.length > 5) return null;
 
+  // Labels like Tech Stack, Technologies, Tools, Built with, Stack, Environment, Skills, Languages,
+  // Frontend, Backend, Database, GitHub, Live, Demo written as "Label: values" are metadata lines, never section headings.
+  if (remainder.length > 0 && METADATA_LABEL_COLON_REGEX.test(cleaned)) {
+    return null;
+  }
+
   if (/^(?:(?:professional|career|executive)\s+)?(?:summary|profile|objective|about(?:\s+me)?|overview)$/i.test(cleaned)) {
     return { section: "summary", remainder };
   }
   if (/^(?:(?:technical|core|key|programming)\s+)?(?:skills?|technologies|tech\s+stack|tools(?:\s*(?:&|and|\/)\s*technologies)?|competencies)(?:\s*(?:&|and|\/)\s*(?:tools|technologies))?$/i.test(cleaned)) {
+    // Inline "Heading: text" is allowed only for summary, education, experience, projects, certifications.
+    // Bare lines like "Skills" or "Technical Skills" stay a skills heading.
+    if (remainder.length > 0) return null;
     return { section: "skills", remainder };
   }
   if (/^(?:(?:personal|academic|key|major|selected|technical|notable|featured|college)\s+)?projects?(?:\s*(?:&|and|\/)\s*(?:work|experience))?$/i.test(cleaned)) {
@@ -399,14 +413,14 @@ export function detectSectionHeadingWithRemainder(line) {
   }
   if (
     /^(?:(?:work|professional|industry|relevant|internship)\s+)?(?:experience|internships?|work\s+history|employment(?:\s+history)?|career\s+history)(?:\s*(?:&|and|\/)\s*(?:experience|internships?|training|projects?))?$/i.test(cleaned) ||
-    /^internships?(?:\s*(?:&|and|\/)\s*(?:experience|training))?$/i.test(cleaned)
+    /^internships?(?:\s*(?:&|and|\/)\s*(?:experience|training))?$/i.test(cleaned) ||
+    /^employment$/i.test(cleaned)
   ) {
     return { section: "experience", remainder };
   }
   if (
-    /^(?:education(?:al)?(?:\s+(?:background|qualifications?|details))?|academics?|academic\s+(?:background|qualifications?|details)|qualifications?|educational\s+qualifications?)$/i.test(
-      cleaned
-    )
+    /^(?:(?:education(?:al)?|academic|academics|qualification|qualifications)\s*(?:\s+(?:background|qualifications?|details))?)$/i.test(cleaned) &&
+    cleaned.split(/\s+/).length <= 5
   ) {
     return { section: "education", remainder };
   }
@@ -432,7 +446,7 @@ export function detectSectionHeading(line) {
 /**
  * Splits resume text into sections by headings.
  */
-function splitResumeSections(text) {
+export function splitResumeSections(text) {
   const rawLines = text ? text.split(/\r?\n/) : [];
   const sections = {
     header: [],
@@ -455,6 +469,16 @@ function splitResumeSections(text) {
 
     const headingResult = detectSectionHeadingWithRemainder(trimmed);
     if (headingResult) {
+      // While the current section is projects or experience, only a bare heading line can switch sections
+      if (
+        (currentSection === "projects" || currentSection === "experience") &&
+        headingResult.remainder &&
+        headingResult.remainder.trim().length > 0
+      ) {
+        sections[currentSection].push(trimmed);
+        continue;
+      }
+
       currentSection = headingResult.section;
       if (headingResult.remainder) {
         sections[currentSection].push(headingResult.remainder);
@@ -504,52 +528,76 @@ export function isEntryHeadingLine(line, nextLine) {
   if (isMetadataOrStackLine(line) || isLinkOnlyMetadataLine(line)) return false;
 
   const style = detectBulletStyle(line);
-  if (style !== "plain") {
-    // Explicit bullet glyphs (•, -, *, 1.) are bullets, NEVER headings
-    return false;
-  }
-
   const cleaned = line.trim();
   if (!cleaned) return false;
 
+  // Strip leading icon/bullet glyph for analysis (Item 2: glyph-prefixed heading support)
+  let stripped = cleaned;
+  if (UNICODE_BULLET_GLYPHS.test(cleaned)) {
+    stripped = cleaned.replace(UNICODE_BULLET_GLYPHS, "").trim();
+  }
+  if (!stripped) return false;
+
   // A line that ends with "." is NEVER a heading (it is a bullet/sentence)
-  if (/[.!?]$/.test(cleaned)) return false;
+  if (/[.!?]$/.test(stripped)) return false;
 
-  // A line that starts with an action verb or weak phrase is NEVER a heading
-  if (startsWithActionVerb(cleaned) || WEAK_PHRASE_START_REGEX.test(cleaned)) return false;
+  // A line that starts with an action verb or weak phrase (after glyph strip) is NEVER a heading
+  if (startsWithActionVerb(stripped) || WEAK_PHRASE_START_REGEX.test(stripped)) return false;
 
-  // Must not start with lowercase
-  if (/^[a-z]/.test(cleaned)) return false;
+  // Must not start with lowercase (after glyph strip)
+  if (/^[a-z]/.test(stripped)) return false;
 
-  const wordsCount = cleaned.split(/\s+/).filter((w) => /[a-zA-Z0-9]/.test(w)).length;
-  // A project heading is a short line (max 12 words)
-  if (wordsCount === 0 || wordsCount > 12) return false;
+  const wordsCount = stripped.split(/\s+/).filter((w) => /[a-zA-Z0-9]/.test(w)).length;
+  if (wordsCount === 0) return false;
 
   // Check heading cues: "|", "–", "-", a tech list, "Live", "GitHub", or a date
-  const hasSeparator = line.includes("|") || line.includes("–") || line.includes("—") || line.includes("-");
-  const hasDateCue = DATE_RANGE_SUFFIX_REGEX.test(cleaned) || /\b(?:19|20)\d{2}\b/.test(cleaned);
-  const hasLinkCue = /\b(?:live|github|demo|source|repo|code|website)\b/i.test(cleaned) || hasProjectLinkSignal(cleaned);
+  const hasSeparator = stripped.includes("|") || stripped.includes("–") || stripped.includes("—") || stripped.includes("-");
+  const hasDateCue = DATE_RANGE_SUFFIX_REGEX.test(stripped) || /\b(?:19|20)\d{2}\b/.test(stripped);
+  const hasLinkCue = /\b(?:live|github|demo|source|repo|code|website)\b/i.test(stripped) || hasProjectLinkSignal(stripped);
   const hasTechListCue =
-    /(?:\([^)]*[A-Za-z][^)]*\)|:\s*[A-Za-z0-9.+#-]+|\btech\s*stack\b|\bbuilt\s*with\b)/i.test(cleaned) ||
-    extractSkillsFromText(cleaned).length >= 1;
+    /(?:\([^)]*[A-Za-z][^)]*\)|:\s*[A-Za-z0-9.+#-]+|\btech\s*stack\b|\bbuilt\s*with\b)/i.test(stripped) ||
+    extractSkillsFromText(stripped).length >= 1;
+  const hasHeadingCues = hasSeparator || hasDateCue || hasLinkCue || hasTechListCue;
 
-  if (hasSeparator || hasDateCue || hasLinkCue || hasTechListCue) {
+  // Item 2: Max 20 words when the line has "|" or a tech list or a link label
+  if (hasHeadingCues && wordsCount <= 20) {
+    // If original line started with a bullet glyph, only treat as heading if
+    // it has separator/tech/link/date cues (not just plain short line)
+    if (style !== "plain") {
+      // A line starting with a bullet/icon glyph is a heading only if it has
+      // "|" or a dash separator plus a tech list, link label, or date
+      if (hasSeparator && (hasTechListCue || hasLinkCue || hasDateCue)) {
+        return true;
+      }
+      if (hasSeparator || hasDateCue || hasLinkCue) {
+        return true;
+      }
+      return false;
+    }
     return true;
   }
 
-  // Short line (< 6 words) followed by bullets or metadata
-  if (wordsCount < 6 && nextLine) {
+  // For lines without heading cues, plain-style bullet glyphs are bullets, not headings
+  if (style !== "plain") return false;
+
+  // A project heading is a short line (max 12 words) without heading cues
+  if (wordsCount > 12) return false;
+
+  // Short line (<= 12 words) with no trailing period followed by a bullet line or "Tech Stack:" line
+  if (wordsCount <= 12 && nextLine) {
     const nextStyle = detectBulletStyle(nextLine);
     const nextCleaned = nextStyle !== "plain" ? stripBulletGlyphPrefix(nextLine) : nextLine.trim();
     const nextWords = nextCleaned.split(/\s+/).filter((w) => /[a-zA-Z0-9]/.test(w)).length;
-    return (
+    if (
       nextStyle !== "plain" ||
       isMetadataOrStackLine(nextLine) ||
       isLinkOnlyMetadataLine(nextLine) ||
       startsWithActionVerb(nextCleaned) ||
       /[.!?]$/.test(nextCleaned) ||
       nextWords >= 6
-    );
+    ) {
+      return true;
+    }
   }
 
   return false;
@@ -571,7 +619,7 @@ function parseStructuredBlocks(sectionLines, { maxBlocks = 8, fallbackTitle = "B
 
   const ensureFallback = () => {
     if (!fallbackBlock) {
-      fallbackBlock = { rawLines: [fallbackTitle], bullets: [] };
+      fallbackBlock = { rawLines: [], bullets: [] };
     }
     return fallbackBlock;
   };
@@ -621,17 +669,16 @@ function parseStructuredBlocks(sectionLines, { maxBlocks = 8, fallbackTitle = "B
       continue;
     }
 
-    // A line that starts with an action verb, ends with ".", or has 8+ words is ALWAYS a bullet.
-    // A heading must NEVER swallow bullets below it.
-    if (
+    // A bullet must have a bullet glyph, or start with an action verb / weak phrase,
+    // or end with sentence punctuation with sufficient words.
+    // Plain text non-sentence lines (like unheaded titles or notes) must not be counted as bullets.
+    const isBullet =
       hasGlyph ||
       startsWithActionVerb(cleaned) ||
       WEAK_PHRASE_START_REGEX.test(cleaned) ||
-      /[.!?]$/.test(cleaned) ||
-      wordsCount >= 8 ||
-      wordsCount >= 6 ||
-      (wordsCount >= 3 && (startsWithActionVerb(cleaned) || WEAK_PHRASE_START_REGEX.test(cleaned) || /[.!?]$/.test(cleaned)))
-    ) {
+      (/[.!?]$/.test(cleaned) && wordsCount >= 3);
+
+    if (isBullet) {
       target.bullets.push({ text: cleaned, style: hasGlyph ? style : "plain" });
       prevWasBullet = true;
     } else {
@@ -640,12 +687,18 @@ function parseStructuredBlocks(sectionLines, { maxBlocks = 8, fallbackTitle = "B
     prevRawLine = line;
   }
 
-  const rawBlocks =
-    detectedHeadingCount > 0
-      ? blocks.slice(0, Math.min(maxBlocks, detectedHeadingCount))
-      : fallbackBlock
-      ? [fallbackBlock]
-      : [];
+  // Item 1: Keep fallbackBlock (pre-heading lines) as an untitled first block if it has bullets
+  let rawBlocks;
+  if (detectedHeadingCount > 0) {
+    const headedBlocks = blocks.slice(0, Math.min(maxBlocks, detectedHeadingCount));
+    if (fallbackBlock && fallbackBlock.bullets.length > 0) {
+      rawBlocks = [fallbackBlock, ...headedBlocks].slice(0, maxBlocks);
+    } else {
+      rawBlocks = headedBlocks;
+    }
+  } else {
+    rawBlocks = fallbackBlock ? [fallbackBlock] : [];
+  }
 
   return rawBlocks.map((b) => {
     const fullText = b.rawLines.join("\n");
@@ -653,7 +706,10 @@ function parseStructuredBlocks(sectionLines, { maxBlocks = 8, fallbackTitle = "B
     const hasTechStack =
       skills.length >= 1 ||
       /(?:tech\s*stack|technologies|built\s*with|tools\s*used|stack)\s*:/i.test(fullText);
-    const hasLink = hasProjectLinkSignal(fullText);
+    // Item 3: compute hasLink only from heading line and link-only metadata lines
+    const headingLine = b.rawLines[0] || fallbackTitle || "";
+    const linkOnlyLines = b.rawLines.filter((ln) => isLinkOnlyMetadataLine(ln));
+    const hasLink = hasProjectLinkSignal(headingLine) || linkOnlyLines.some((ln) => hasProjectLinkSignal(ln));
     return {
       fullText,
       bullets: b.bullets,
@@ -755,14 +811,14 @@ export function deduplicateBullets(bullets) {
   return { deduplicatedBullets: processedBullets, duplicateBulletCount };
 }
 
-function parseProjects(projectLines) {
+export function parseProjects(projectLines) {
   return parseStructuredBlocks(projectLines, {
     maxBlocks: SCORING_RUBRIC.projectQuality.maxProjects,
     fallbackTitle: "Project",
   });
 }
 
-function parseExperienceEntries(experienceLines) {
+export function parseExperienceEntries(experienceLines) {
   return parseStructuredBlocks(experienceLines, {
     maxBlocks: SCORING_RUBRIC.projectQuality.maxProjects,
     fallbackTitle: "Experience",
@@ -1110,10 +1166,24 @@ export function scoreResumeDeterministically({
     });
   }
 
-  const replacementCharCount = (text.match(REPLACEMENT_CHAR_REGEX) || []).length;
-  const controlCharsCount = (text.match(CONTROL_CHAR_REGEX) || []).length;
+  // Item 6: Count U+FFFD and control characters only when they appear INSIDE a word
+  // (letters on both sides). Control characters at line start or standing alone are icon glyphs.
+  // Never count private-use characters. Log counts by code point only.
+  const INSIDE_WORD_ODD_REGEX = /(?<=[a-zA-Z])[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F](?=[a-zA-Z])/gu;
+  const insideWordOddMatches = text.match(INSIDE_WORD_ODD_REGEX) || [];
+  const corruptedCount = insideWordOddMatches.length;
+
+  // Log counts by code point only
+  const oddCharByCodePoint = {};
+  for (const ch of insideWordOddMatches) {
+    const cp = `U+${ch.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")}`;
+    oddCharByCodePoint[cp] = (oddCharByCodePoint[cp] || 0) + 1;
+  }
+
+  // Keep separate counts for logging purposes (backward compat)
+  const replacementCharCount = insideWordOddMatches.filter((ch) => ch === "\uFFFD").length;
+  const controlCharsCount = corruptedCount - replacementCharCount;
   const privateUseCount = (text.match(PRIVATE_USE_GLYPHS_REGEX) || []).length;
-  const corruptedCount = replacementCharCount + controlCharsCount;
 
   if (corruptedCount >= 10) {
     atsScore -= pCfg.oddCharactersPenalty;
@@ -1154,13 +1224,21 @@ export function scoreResumeDeterministically({
 
   const metricPoints = interpolateCurve(metricShare, iCfg.shareCurve);
   const actionVerbPoints = interpolateCurve(actionVerbShare, iCfg.shareCurve);
-  const impactScore = Math.min(
-    100,
-    Math.max(
-      0,
-      Math.round(metricPoints * iCfg.metricWeight + actionVerbPoints * iCfg.actionVerbWeight)
-    )
+  let impactScore = Math.round(
+    metricPoints * iCfg.metricWeight + actionVerbPoints * iCfg.actionVerbWeight
   );
+
+  // Full marks (100) only when every sub-check passes (all bullets have metrics and start with action verbs)
+  const allImpactSubChecksPassed =
+    totalBulletsCount > 0 &&
+    metricBulletsCount === totalBulletsCount &&
+    actionVerbBulletsCount === totalBulletsCount;
+
+  if (!allImpactSubChecksPassed) {
+    impactScore = Math.min(impactScore, 95);
+  }
+
+  impactScore = Math.min(100, Math.max(0, impactScore));
 
   // ── Debug log (Item 8): Log once per analysis (counts and keys ONLY, no resume text)
   const projectHeadingsDetected = parsedProjects.length;
@@ -1174,6 +1252,7 @@ export function scoreResumeDeterministically({
     replacementChar: replacementCharCount,
     controlChars: controlCharsCount,
     privateUse: privateUseCount,
+    byCodePoint: oddCharByCodePoint,
   };
 
   console.log(
@@ -1243,10 +1322,22 @@ const avgProjectBullets = projectCount > 0 ? totalProjectBullets / projectCount 
     Math.min(1, projectMetricShare / prCfg.minMetricShareForFull) * prCfg.metricsPoints
   );
 
-  const projectScore = Math.min(
-    100,
-    Math.max(0, projCountPts + projBulletsPts + projTechPts + projLinkPts + projMetricsPts)
-  );
+  let projectScore = projCountPts + projBulletsPts + projTechPts + projLinkPts + projMetricsPts;
+
+  // Full marks (100) only when every sub-check passes (count, avg bullets, tech stack, links, and all bullets have metrics)
+  const allProjectSubChecksPassed =
+    projectCount >= prCfg.minProjectsForFull &&
+    avgProjectBullets >= prCfg.minAvgBulletsForFull &&
+    projectsWithTech === projectCount &&
+    projectsWithLink === projectCount &&
+    totalProjectBullets > 0 &&
+    projectMetricBullets === totalProjectBullets;
+
+  if (!allProjectSubChecksPassed) {
+    projectScore = Math.min(projectScore, 95);
+  }
+
+  projectScore = Math.min(100, Math.max(0, projectScore));
 
   const experienceHasLinkSignal = hasProjectLinkSignal(sections.experience.join("\n"));
 
@@ -1295,13 +1386,17 @@ const avgProjectBullets = projectCount > 0 ? totalProjectBullets / projectCount 
   const detectedSkills = extractSkillsFromText(text);
   const projectAndExpText = [...sections.projects, ...sections.experience].join("\n");
   const backedSkillsSet = new Set(extractSkillsFromText(projectAndExpText));
-  const backedSkillsCount = detectedSkills.filter((sk) => backedSkillsSet.has(sk)).length;
+
+  // Item 8: Tool skills exempt from the backing denominator
+  const TOOL_SKILLS_EXEMPT = new Set(["Git", "GitHub", "Postman", "VS Code", "Vercel", "Netlify", "Render", "npm"]);
+  const nonToolSkills = detectedSkills.filter((sk) => !TOOL_SKILLS_EXEMPT.has(sk));
+  const backedSkillsCount = nonToolSkills.filter((sk) => backedSkillsSet.has(sk)).length;
 
   console.log(
-    `[resumeScoring] skillsDetected=${detectedSkills.length}, skillsBacked=${backedSkillsCount}`
+    `[resumeScoring] skillsDetected=${detectedSkills.length}, skillsBacked=${backedSkillsCount}, toolExempt=${detectedSkills.length - nonToolSkills.length}`
   );
 
-  const backedShare = detectedSkills.length > 0 ? backedSkillsCount / detectedSkills.length : 0;
+  const backedShare = nonToolSkills.length > 0 ? backedSkillsCount / nonToolSkills.length : (detectedSkills.length > 0 ? 1 : 0);
   const backedPts = Math.round(backedShare * sCfg.backedInProjectsExpPoints);
 
   const skillCategoryLinesCount = sections.skills.filter((line) =>
@@ -1481,7 +1576,35 @@ const avgProjectBullets = projectCount > 0 ? totalProjectBullets / projectCount 
   }
 
   const hasSocialUrl = effectiveContacts.hasLinkedIn || effectiveContacts.hasGitHub;
-  const hasSocialLabel = /\blinkedin\b/i.test(text) || /\bgithub\b/i.test(text);
+  // Item 4: detect label-only LinkedIn/GitHub only in header section or on lines
+  // that also contain "|", an email, or a phone. A bullet like "Git and GitHub for
+  // version control" must not count.
+  const labelLinkedInRegex = /\blinkedin\b/i;
+  const labelGitHubRegex = /\bgithub\b/i;
+  let hasSocialLabel = false;
+  if (!hasSocialUrl) {
+    // Check header lines and lines with "|" or email or phone
+    const headerLines = sections.header || [];
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/i;
+    const phoneRegex = /(?:\+?91[\s-]?)?(?:0)?[6-9]\d{4}[\s-]?\d{5}|\+?[1-9]\d{0,3}[\s-]?(?:\(?\d{2,5}\)?[\s-]?)?\d{3,4}[\s-]?\d{3,4}/;
+    for (const hl of headerLines) {
+      if (labelLinkedInRegex.test(hl) || labelGitHubRegex.test(hl)) {
+        hasSocialLabel = true;
+        break;
+      }
+    }
+    if (!hasSocialLabel) {
+      // Check all lines for label + context ("|", email, phone on same line)
+      const allLines = text.split(/\r?\n/);
+      for (const ln of allLines) {
+        if (!(labelLinkedInRegex.test(ln) || labelGitHubRegex.test(ln))) continue;
+        if (ln.includes("|") || emailRegex.test(ln) || phoneRegex.test(ln)) {
+          hasSocialLabel = true;
+          break;
+        }
+      }
+    }
+  }
   const hasSocialLink = hasSocialUrl || hasSocialLabel;
 
   if (hasSocialLink) {
@@ -1602,7 +1725,7 @@ const avgProjectBullets = projectCount > 0 ? totalProjectBullets / projectCount 
       profScore * w.professionalism
   );
 
-  const allSubScoresAtLeast85 = [
+  const allSubScoresAtLeastTopBand = [
     atsScore,
     impactScore,
     skillsScore,
@@ -1611,8 +1734,11 @@ const avgProjectBullets = projectCount > 0 ? totalProjectBullets / projectCount 
     profScore,
   ].every((s) => s >= SCORING_RUBRIC.caps.requiredSubScoreForTopBand);
 
-  if (!allSubScoresAtLeast85) {
-    overall = Math.min(overall, SCORING_RUBRIC.caps.maxWithoutAllSubScores85);
+  if (!allSubScoresAtLeastTopBand) {
+    overall = Math.min(
+      overall,
+      SCORING_RUBRIC.caps.maxWithoutAllSubScores90 ?? SCORING_RUBRIC.caps.maxWithoutAllSubScores85
+    );
   }
   if (impactScore < SCORING_RUBRIC.caps.lowImpactThreshold) {
     overall = Math.min(overall, SCORING_RUBRIC.caps.maxIfImpactBelow30);

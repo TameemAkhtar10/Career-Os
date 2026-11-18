@@ -11,10 +11,10 @@ export const accountApi = {
   exportData: (): Promise<ApiResponse<unknown>> =>
     apiClient<unknown>("/api/account/export", { method: "GET" }),
 
-  deleteAccount: (password: string): Promise<ApiResponse<null>> =>
+  deleteAccount: (confirmation: string): Promise<ApiResponse<null>> =>
     apiClient<null>("/api/account", {
       method: "DELETE",
-      body: JSON.stringify({ password }),
+      body: JSON.stringify({ password: confirmation, confirmEmail: confirmation }),
     }),
 
   getNotificationPreferences: (): Promise<ApiResponse<NotificationPreferences>> =>

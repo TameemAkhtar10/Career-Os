@@ -9,8 +9,9 @@ import { JobType, WorkMode } from "../../../constants/enums";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { EmptyState } from "../../../components/feedback/EmptyState";
 import { Pagination } from "../../../components/ui/Pagination";
-import { Search, MapPin, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { Search, MapPin, SlidersHorizontal, Sparkles, X, Bell } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
+import { CreateAlertModal } from "../components/CreateAlertModal";
 
 export interface JobsSearchPageProps {
   initialData?: JobsResponseData;
@@ -47,6 +48,17 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
   );
   const [sort, setSort] = useState<"latest" | "salary">(sortParam);
   const [page, setPage] = useState<number>(pageParam);
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+
+  const hasActiveFilters = Boolean(
+    searchTerm.trim() ||
+      cityInput.trim() ||
+      workMode ||
+      jobType ||
+      skills.length > 0 ||
+      fresherOnly ||
+      minLpa > 0
+  );
 
   // Sync state to URL
   const updateUrl = useCallback(
@@ -201,6 +213,20 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
               Clear all
             </button>
           </div>
+
+          {/* Create Alert button when filters are active */}
+          {hasActiveFilters && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAlertModalOpen(true)}
+              className="w-full gap-2 !border-gold !text-emerald-dark bg-champagne/40 hover:bg-champagne shadow-emerald-sm font-semibold"
+            >
+              <Bell className="w-3.5 h-3.5 text-gold shrink-0" />
+              <span>Create alert from this search</span>
+            </Button>
+          )}
 
           {/* Fresher Only Toggle */}
           <div className="p-3 bg-gold-light rounded-ui border border-gold/40 flex items-center justify-between gap-3">
@@ -363,6 +389,21 @@ export const JobsSearchPage: React.FC<JobsSearchPageProps> = ({ initialData }) =
           />
         </div>
       </div>
+
+      {/* Create Alert Modal */}
+      <CreateAlertModal
+        isOpen={isAlertModalOpen}
+        onClose={() => setIsAlertModalOpen(false)}
+        filters={{
+          q: searchTerm.trim() || undefined,
+          location: cityInput.trim() || undefined,
+          workMode,
+          jobType,
+          skills: skills.length > 0 ? skills : undefined,
+          fresher: fresherOnly || undefined,
+          minSalary: minLpa > 0 ? minLpa * 100000 : undefined,
+        }}
+      />
     </div>
   );
 };

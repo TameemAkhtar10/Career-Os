@@ -20,6 +20,8 @@ import notificationRoutes from "./routes/notification.routes.js";
 import cronRoutes from "./routes/cron.routes.js";
 import resumeRoutes from "./routes/resume.routes.js";
 import candidateDashboardRoutes from "./routes/candidateDashboard.routes.js";
+import savedJobRoutes from "./routes/savedJob.routes.js";
+import jobAlertRoutes from "./routes/jobAlert.routes.js";
 
 const app = express();
 
@@ -83,6 +85,8 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/cron", cronRoutes);
 app.use("/api/resume", resumeRoutes);
 app.use("/api/candidate", candidateDashboardRoutes);
+app.use("/api/saved-jobs", savedJobRoutes);
+app.use("/api/job-alerts", jobAlertRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, _res, next) => {

@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { getCache, setCache } from "../utils/cache.js";
 import { normalizeSkill } from "../utils/skillTaxonomy.js";
+import { computeJobMatch } from "../utils/jobMatch.js";
 
 /**
  * Cache key generator for candidate dashboard
@@ -133,29 +134,37 @@ export const getCandidateDashboard = asyncHandler(async (req, res) => {
     jobId: app.job?._id,
   }));
 
-  // 4. Recommended jobs (top 5 open jobs by normalized skills overlap, excluding already-applied)
-  const candidateSkillsSet = new Set(
-    (profile?.skills || []).map((s) => normalizeSkill(s)).filter(Boolean)
-  );
+  // 4. Recommended jobs (top 5 open jobs using shared computeJobMatch scoring)
+  const candidateSkills = profile?.skills || [];
+  const resumeSkills = latestAnalysis?.keywords?.present || [];
+  const candidateExperienceYears = Array.isArray(profile?.experience)
+    ? profile.experience.reduce((sum, exp) => {
+        if (!exp.from) return sum;
+        const from = new Date(exp.from);
+        const to = exp.to ? new Date(exp.to) : new Date();
+        const months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+        return sum + (months > 0 ? months / 12 : 0);
+      }, 0)
+    : 0;
 
   const candidatePool = await Job.find({
     status: "open",
     _id: { $nin: appliedJobIds },
   })
-    .select("title companyName location workMode jobType salary skills isFresherFriendly createdAt")
+    .select("title companyName location workMode jobType salary skills description isFresherFriendly experience createdAt")
     .sort({ createdAt: -1 })
     .limit(30)
     .lean();
 
   const scoredJobs = candidatePool.map((job) => {
-    let matchScore = 0;
-    if (Array.isArray(job.skills) && job.skills.length > 0 && candidateSkillsSet.size > 0) {
-      const matches = job.skills.filter((s) => {
-        const norm = normalizeSkill(s);
-        return norm && candidateSkillsSet.has(norm);
-      }).length;
-      matchScore = Math.min(100, Math.round((matches / job.skills.length) * 100));
-    }
+    const { matchScore } = computeJobMatch({
+      candidateSkills,
+      resumeSkills,
+      jobSkills: job.skills || [],
+      jobDescription: job.description || "",
+      candidateExperienceYears,
+      job,
+    });
 
     return {
       _id: job._id,
@@ -167,7 +176,7 @@ export const getCandidateDashboard = asyncHandler(async (req, res) => {
       salary: job.salary,
       skills: job.skills || [],
       isFresherFriendly: Boolean(job.isFresherFriendly),
-      matchScore,
+      matchScore: matchScore != null ? matchScore : 0,
       createdAt: job.createdAt,
     };
   });

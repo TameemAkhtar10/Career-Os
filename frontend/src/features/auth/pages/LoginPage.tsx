@@ -17,6 +17,7 @@ import { Logo } from "../../../components/layout/Logo";
 import { ROUTES } from "../../../constants/routes";
 import { LogIn, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 
 export const LoginPage: React.FC = () => {
   const router = useRouter();
@@ -26,6 +27,21 @@ export const LoginPage: React.FC = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const handleAuthSuccess = (user: any) => {
+    dispatch(setAuthUser(user));
+    toast.success("Logged in successfully.");
+
+    if (nextUrl && nextUrl.startsWith("/")) {
+      router.push(nextUrl);
+    } else if (user.role === "recruiter") {
+      router.push(ROUTES.RECRUITER.DASHBOARD);
+    } else if (user.role === "candidate") {
+      router.push(ROUTES.CANDIDATE.DASHBOARD);
+    } else {
+      router.push(ROUTES.JOBS);
+    }
+  };
 
   const {
     register,
@@ -44,18 +60,7 @@ export const LoginPage: React.FC = () => {
     try {
       const res = await authApi.login(data);
       if (res.data?.user) {
-        dispatch(setAuthUser(res.data.user));
-        toast.success(res.message || "Logged in successfully.");
-
-        if (nextUrl && nextUrl.startsWith("/")) {
-          router.push(nextUrl);
-        } else if (res.data.user.role === "recruiter") {
-          router.push(ROUTES.RECRUITER.DASHBOARD);
-        } else if (res.data.user.role === "candidate") {
-          router.push(ROUTES.CANDIDATE.DASHBOARD);
-        } else {
-          router.push(ROUTES.JOBS);
-        }
+        handleAuthSuccess(res.data.user);
       }
     } catch (err: any) {
       if (err instanceof ApiClientError) {
@@ -149,6 +154,8 @@ export const LoginPage: React.FC = () => {
             <ArrowRight className="w-4 h-4" />
           </Button>
         </form>
+
+        <GoogleSignInButton onSuccess={handleAuthSuccess} />
 
         <div className="mt-6 text-center text-xs text-muted">
           Don&apos;t have an account?{" "}

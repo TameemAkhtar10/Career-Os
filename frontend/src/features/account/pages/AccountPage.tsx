@@ -52,6 +52,11 @@ export const AccountPage: React.FC = () => {
     }
   };
 
+  const isGoogleOnly =
+    user?.authProviders &&
+    user.authProviders.length === 1 &&
+    user.authProviders[0] === "google";
+
   const handleDeleteAccount = async () => {
     setDeleteError(null);
     setIsDeleting(true);
@@ -63,9 +68,9 @@ export const AccountPage: React.FC = () => {
     } catch (err) {
       if (err instanceof ApiClientError) {
         if (err.statusCode === 401) {
-          setDeleteError("Invalid password. Please try again.");
+          setDeleteError(isGoogleOnly ? "Email does not match. Please try again." : "Invalid password. Please try again.");
         } else {
-          toast.error(err.message || "Failed to delete account.");
+          setDeleteError(err.message || "Failed to delete account.");
         }
       } else {
         toast.error("Failed to delete account. Please try again.");
@@ -160,7 +165,9 @@ export const AccountPage: React.FC = () => {
               </h3>
             </div>
             <p className="text-sm text-body-text/70">
-              This will permanently delete your account and all associated data. Enter your password to confirm.
+              {isGoogleOnly
+                ? "This will permanently delete your account and all associated data. Enter your registered email address to confirm."
+                : "This will permanently delete your account and all associated data. Enter your password to confirm."}
             </p>
 
             {deleteError && (
@@ -171,13 +178,13 @@ export const AccountPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-emerald-ink mb-1">
-                Your Password
+                {isGoogleOnly ? "Your Email Address" : "Your Password"}
               </label>
               <input
-                type="password"
+                type={isGoogleOnly ? "email" : "password"}
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder={isGoogleOnly ? "Enter your email" : "Enter your password"}
                 className="w-full px-3 py-2 text-sm rounded-xl bg-champagne/20 border border-champagne-border text-body-text placeholder:text-body-text/40 focus:outline-none focus:ring-2 focus:ring-error-border transition-all"
               />
             </div>

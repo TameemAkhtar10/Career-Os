@@ -9,6 +9,8 @@ import { formatSalary } from "../utils";
 import { MapPin, Briefcase, Sparkles } from "lucide-react";
 import { WORK_MODE_LABELS, JOB_TYPE_LABELS } from "../../../constants/enums";
 import { ROUTES } from "../../../constants/routes";
+import { BookmarkButton } from "./BookmarkButton";
+import { JobMatchBadge } from "./JobMatchBadge";
 
 export interface JobCardProps {
   job: Job;
@@ -28,17 +30,24 @@ export const JobCard: React.FC<JobCardProps> = ({ job }) => {
         <div>
           {/* Top meta tags */}
           <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-            {job.isFresherFriendly ? (
-              <Badge variant="fresher" size="sm" className="gap-1">
-                <Sparkles className="w-3 h-3 text-gold" />
-                Fresher friendly
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {job.isFresherFriendly ? (
+                <Badge variant="fresher" size="sm" className="gap-1">
+                  <Sparkles className="w-3 h-3 text-gold" />
+                  Fresher friendly
+                </Badge>
+              ) : null}
+              <Badge variant="outline" size="sm">
+                {jobTypeLabel}
               </Badge>
-            ) : (
-              <span />
-            )}
-            <Badge variant="outline" size="sm">
-              {jobTypeLabel}
-            </Badge>
+              <JobMatchBadge jobId={job._id} />
+            </div>
+
+            <BookmarkButton
+              jobId={job._id}
+              size="sm"
+              className="p-1.5 rounded-full bg-cream border border-border/70 hover:bg-champagne/60 hover:border-gold/40 shadow-emerald-sm transition-all"
+            />
           </div>
 
           {/* Job Title & Company */}

@@ -11,7 +11,7 @@ import { ROUTES } from "../../../constants/routes";
 import { Shield, Lock, Eye, Download, Trash2, Mail, Cookie } from "lucide-react";
 
 export const PrivacyPage: React.FC = () => {
-  const lastUpdated = "November 10, 2026";
+  const lastUpdated = "November 18, 2026";
 
   return (
     <div className="min-h-screen bg-champagne/40 py-12 px-4 sm:px-6 lg:px-8">
@@ -55,13 +55,20 @@ export const PrivacyPage: React.FC = () => {
           </div>
           <div className="space-y-4 text-sm text-body/80 leading-relaxed">
             <div>
-              <h3 className="font-semibold text-emerald-dark mb-1">A. Account Credentials</h3>
+              <h3 className="font-semibold text-emerald-dark mb-1">A. Account Credentials &amp; Sign-In Options</h3>
               <p>
-                When registering, we collect your name, email address, chosen password, and assigned role
+                When registering with email and password, we collect your name, email address, chosen password, and assigned role
                 (<code className="text-xs bg-champagne px-1.5 py-0.5 rounded text-emerald">candidate</code> or{" "}
                 <code className="text-xs bg-champagne px-1.5 py-0.5 rounded text-emerald">recruiter</code>).
                 Passwords are one-way hashed with bcrypt (cost factor 12) before database insertion and are
                 never stored in plain text.
+              </p>
+              <p className="mt-2">
+                <strong>Optional Sign-in with Google:</strong> You can optionally register and sign in using
+                Google Identity Services. When you use Google sign-in, we receive your verified name, email address,
+                and profile picture from Google. We do not receive or store your Google password. You can still use
+                email and password by setting one via password reset at any time, and you can permanently delete
+                your account and all associated data at any time from your Account Settings.
               </p>
             </div>
 
@@ -165,6 +172,12 @@ export const PrivacyPage: React.FC = () => {
                 for recruiters, and weekly profile completion nudges.
               </li>
             </ul>
+            <p>
+              <strong>Custom Job Search Alerts:</strong> Candidates can create up to 5 custom search alerts based on keywords, skills, cities, work mode, and compensation brackets. We send digest emails (daily or weekly) containing open roles posted after your last alert. Every email includes a signed, 1-click &quot;Pause this alert&quot; link (no login required) in addition to the standard unsubscribe link. You can pause, resume, edit, or delete alerts anytime in{" "}
+              <Link href={ROUTES.CANDIDATE.ALERTS} className="text-emerald font-semibold underline hover:text-gold transition-colors">
+                Job Alerts
+              </Link>.
+            </p>
             <p>
               <strong>Unsubscribe &amp; Preferences:</strong> Every scheduled email features a signed 1-click
               unsubscribe link conforming to RFC 8058 (<code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">List-Unsubscribe</code>). You can also configure individual email alerts at any time on your{" "}

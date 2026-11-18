@@ -15,6 +15,8 @@ import { Button } from "../../../components/ui/Button";
 import { Modal } from "../../../components/ui/Modal";
 import { BrandLoader } from "../../../components/feedback/BrandLoader";
 import { ErrorState } from "../../../components/feedback/ErrorState";
+import { BookmarkButton } from "../components/BookmarkButton";
+import { JobMatchCard } from "../components/JobMatchCard";
 import { toast } from "sonner";
 import {
   Briefcase,
@@ -202,7 +204,13 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
                     </h1>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <BookmarkButton
+                      jobId={job._id}
+                      size="md"
+                      showLabel
+                      className="px-3 py-1.5 bg-champagne/80 hover:bg-champagne border border-champagne-border/80 shadow-emerald-sm"
+                    />
                     {job.isFresherFriendly && (
                       <Badge variant="fresher" className="gap-1 px-3 py-1 text-xs">
                         <Sparkles className="w-3.5 h-3.5" />
@@ -316,8 +324,11 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
               </Card>
             </div>
 
-            {/* Right Column: Sticky Apply Card */}
+            {/* Right Column: Sticky Apply Card & Match Breakdown */}
             <div className="lg:col-span-1 lg:sticky lg:top-24 space-y-4">
+              {/* How Well Do You Match Card (Candidate Only) */}
+              <JobMatchCard jobId={job._id} />
+
               <Card className="p-6 bg-cream border-champagne-border shadow-soft-emerald">
                 <h3 className="font-heading text-lg font-bold text-emerald-ink mb-1">
                   Ready to apply?

@@ -166,9 +166,15 @@ export function isTemplateExample(exampleText) {
  * @param {string} rawExample
  * @param {string} redactedResumeText
  * @param {Set<string>} detectedSkillsSet
+ * @param {Set<string>} targetOrProfileSkillsSet
  * @returns {string}
  */
-export function validateSuggestionExample(rawExample, redactedResumeText, detectedSkillsSet) {
+export function validateSuggestionExample(
+  rawExample,
+  redactedResumeText,
+  detectedSkillsSet = new Set(),
+  targetOrProfileSkillsSet = new Set()
+) {
   if (!rawExample || typeof rawExample !== "string") return "";
   const cleaned = cleanAiTextHygiene(rawExample);
   if (!cleaned) return "";
@@ -178,6 +184,17 @@ export function validateSuggestionExample(rawExample, redactedResumeText, detect
   }
 
   if (isTemplateExample(cleaned)) {
+    const templateSkills = extractSkillsFromText(cleaned);
+    let skillName = templateSkills[0];
+    if (!skillName) {
+      const match = cleaned.match(/^<?([A-Za-z0-9.+#/-]+)>?\s*[-–—]/);
+      if (match) skillName = match[1].trim();
+    }
+    const isTargetOrProfile =
+      skillName && targetOrProfileSkillsSet && targetOrProfileSkillsSet.has(skillName.toLowerCase());
+    if (!isTargetOrProfile) {
+      return "";
+    }
     return cleaned;
   }
 
@@ -188,20 +205,6 @@ export function validateSuggestionExample(rawExample, redactedResumeText, detect
   );
   if (hasUndetectedSkill) {
     // If a skill is not in the resume's detected skills and example is not template, BLANK it
-    return "";
-  }
-
-  // Check for invented tools/projects/databases/actions outside brackets
-  const textWithoutBrackets = cleaned.replace(/\[[^\]]*\]/g, " ");
-  const contentWords = (textWithoutBrackets.toLowerCase().match(/[a-z]{4,}/g) || []).filter(
-    (w) =>
-      !ALLOWED_GRAMMAR_WORDS.has(w) &&
-      !ACTION_VERBS.has(w) &&
-      !COMMON_TEMPLATE_WORDS.has(w)
-  );
-  const resumeLower = (redactedResumeText || "").toLowerCase();
-  const ungroundedWords = contentWords.filter((w) => !resumeLower.includes(w));
-  if (ungroundedWords.length >= 2) {
     return "";
   }
 
@@ -279,12 +282,11 @@ export function sanitizeAiFeedback(generated, redactedResumeText, context = {}) 
     : extractSkillsFromText(redactedResumeText || "").map((s) => s.toLowerCase());
   const detectedSkillsSet = new Set(detectedSkills);
 
-  const allowedSkillsList = [
+  const targetOrProfileSkills = [
     ...(context.targetSkills || []),
     ...(context.candidateProfileSkills || []),
-    ...detectedSkills,
   ].map((s) => s.toLowerCase());
-  const allowedSkillsSet = new Set(allowedSkillsList);
+  const targetOrProfileSkillsSet = new Set(targetOrProfileSkills);
 
   const rawRewrites = Array.isArray(generated?.bulletRewrites)
     ? generated.bulletRewrites
@@ -314,26 +316,14 @@ export function sanitizeAiFeedback(generated, redactedResumeText, context = {}) 
     : [];
 
   const suggestions = rawSuggestions
-    .filter((s) => {
-      // Never show a suggestion for a skill outside target/profile
-      const titleDesc = `${s?.title || ""} ${s?.description || ""}`;
-      const skillsInSugg = extractSkillsFromText(titleDesc);
-      if (
-        skillsInSugg.length > 0 &&
-        ((context.targetSkills && context.targetSkills.length > 0) ||
-          (context.candidateProfileSkills && context.candidateProfileSkills.length > 0))
-      ) {
-        const hasAllowedSkill = skillsInSugg.some((sk) => allowedSkillsSet.has(sk.toLowerCase()));
-        if (!hasAllowedSkill) return false;
-      }
-      return true;
-    })
+    .filter(Boolean)
     .map((s) => {
       const rawExample = typeof s?.example === "string" ? s.example : "";
       const safeExample = validateSuggestionExample(
         rawExample,
         redactedResumeText,
-        detectedSkillsSet
+        detectedSkillsSet,
+        targetOrProfileSkillsSet
       );
 
       return {

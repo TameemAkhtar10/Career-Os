@@ -19,6 +19,8 @@ export const ROUTES = {
     RESUME_CHECK: "/candidate/resume-check",
     APPLICATIONS: "/candidate/applications",
     PROFILE: "/candidate/profile",
+    SAVED_JOBS: "/candidate/saved-jobs",
+    ALERTS: "/candidate/alerts",
   },
   RECRUITER: {
     DASHBOARD: "/recruiter/dashboard",

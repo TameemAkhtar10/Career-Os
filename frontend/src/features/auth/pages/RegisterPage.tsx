@@ -15,12 +15,26 @@ import { Card } from "../../../components/ui/Card";
 import { Logo } from "../../../components/layout/Logo";
 import { User, Briefcase, Eye, EyeOff, Sparkles, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { useDispatch } from "react-redux";
+import { setAuthUser } from "../state/authSlice";
+import { GoogleSignInButton } from "../components/GoogleSignInButton";
 
 export const RegisterPage: React.FC = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [role, setRole] = useState<"candidate" | "recruiter">("candidate");
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const handleGoogleSuccess = (user: any) => {
+    dispatch(setAuthUser(user));
+    toast.success("Logged in with Google successfully.");
+    if (user.role === "recruiter") {
+      router.push(ROUTES.RECRUITER.DASHBOARD);
+    } else {
+      router.push(ROUTES.CANDIDATE.DASHBOARD);
+    }
+  };
 
   const {
     register,
@@ -229,6 +243,8 @@ export const RegisterPage: React.FC = () => {
             .
           </p>
         </form>
+
+        <GoogleSignInButton role={role} onSuccess={handleGoogleSuccess} />
 
         <div className="mt-6 text-center text-xs text-muted">
           Already have an account?{" "}

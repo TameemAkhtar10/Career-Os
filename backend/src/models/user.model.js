@@ -19,9 +19,31 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Password is required",
+      ],
       minlength: [8, "Password must be at least 8 characters"],
       select: false,
+    },
+    googleId: {
+      type: String,
+      sparse: true,
+      unique: true,
+      select: false,
+      default: undefined,
+    },
+    authProviders: {
+      type: [String],
+      enum: ["password", "google"],
+      default: function () {
+        const providers = [];
+        if (this.password) providers.push("password");
+        if (this.googleId) providers.push("google");
+        return providers.length ? providers : ["password"];
+      },
     },
     role: {
       type: String,
@@ -81,12 +103,13 @@ const userSchema = new mongoose.Schema(
 // Hash password before saving (only when modified)
 // Mongoose 8+ async hooks: no `next` param — use return for early exit, throw for errors.
 userSchema.pre("save", async function () {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password") || !this.password) return;
   this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
 });
 
 // Compare raw password with stored hash
 userSchema.methods.comparePassword = async function (candidatePassword) {
+  if (!this.password) return false;
   return bcrypt.compare(candidatePassword, this.password);
 };
 

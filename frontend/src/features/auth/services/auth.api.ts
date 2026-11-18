@@ -9,7 +9,23 @@ import {
   VerifyEmailFormData,
 } from "../schemas";
 
+export interface GoogleAuthResponse {
+  user?: User;
+  isNewUser?: boolean;
+  needsRole?: boolean;
+}
+
 export const authApi = {
+  googleSignIn: (data: {
+    credential: string;
+    role?: "candidate" | "recruiter";
+  }): Promise<ApiResponse<GoogleAuthResponse>> =>
+    apiClient<GoogleAuthResponse>("/api/auth/google", {
+      method: "POST",
+      body: JSON.stringify(data),
+      skipAuthRefresh: true,
+    }),
+
   register: (data: RegisterFormData): Promise<ApiResponse<null>> =>
     apiClient<null>("/api/auth/register", {
       method: "POST",

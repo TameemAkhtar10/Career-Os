@@ -1,10 +1,12 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useAuth } from "../../../providers/AuthProvider";
 import { Card } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { useNotificationPreferences } from "../hooks/useNotificationPreferences";
+import { ROUTES } from "../../../constants/routes";
 import { Bell, Briefcase, UserCheck, AlertCircle, RefreshCw } from "lucide-react";
 
 interface ToggleSwitchProps {
@@ -189,6 +191,19 @@ export const NotificationPreferencesCard: React.FC = () => {
               onChange={(val) => updatePreference("applicantDigest", val)}
               disabled={isUpdating}
             />
+          </div>
+        )}
+        {isCandidate && (
+          <div className="p-3.5 rounded-xl bg-champagne/40 border border-gold/40 flex items-center justify-between gap-3 text-xs">
+            <span className="text-body font-medium">
+              Want to manage specific custom search alerts?
+            </span>
+            <Link
+              href={ROUTES.CANDIDATE.ALERTS}
+              className="text-emerald font-semibold underline hover:text-gold shrink-0"
+            >
+              Manage Job Alerts &rarr;
+            </Link>
           </div>
         )}
       </div>

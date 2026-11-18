@@ -6,6 +6,8 @@ import { Application } from "../models/application.model.js";
 import { Otp } from "../models/otp.model.js";
 import { ResumeAnalysis } from "../models/ResumeAnalysis.js";
 import { ResumeAnalysisDailyCount } from "../models/ResumeAnalysisDailyCount.js";
+import { SavedJob } from "../models/savedJob.model.js";
+import { JobAlert } from "../models/jobAlert.model.js";
 import { deleteFileFromImageKit } from "../services/imagekit.service.js";
 import { deleteResumeFromGridFS } from "../services/gridfs.service.js";
 import { clearAuthCookies } from "../services/token.service.js";
@@ -21,7 +23,7 @@ import { delCache, delByPrefix } from "../utils/cache.js";
  */
 export const deleteAccount = asyncHandler(async (req, res) => {
   const userId = req.user._id;
-  const { password } = req.body;
+  const { password, confirmEmail } = req.body;
 
   const user = await User.findById(userId).select("+password");
   if (!user) {
@@ -32,9 +34,20 @@ export const deleteAccount = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Administrator accounts cannot be deleted through this endpoint.");
   }
 
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    throw new ApiError(401, "Invalid password.");
+  if (user.password) {
+    if (!password) {
+      throw new ApiError(400, "Password is required to confirm account deletion.");
+    }
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      throw new ApiError(401, "Invalid password.");
+    }
+  } else {
+    // Passwordless account (e.g. Google-only): confirmation via email match
+    const confirmation = (confirmEmail || password || "").trim().toLowerCase();
+    if (confirmation !== user.email.toLowerCase()) {
+      throw new ApiError(400, "Please confirm deletion by entering your registered email address.");
+    }
   }
 
   if (user.role === "candidate") {
@@ -53,6 +66,8 @@ export const deleteAccount = asyncHandler(async (req, res) => {
       Otp.deleteMany({ email: user.email }),
       ResumeAnalysis.deleteMany({ user: userId }),
       ResumeAnalysisDailyCount.deleteMany({ user: userId }),
+      SavedJob.deleteMany({ user: userId }),
+      JobAlert.deleteMany({ user: userId }),
       User.deleteOne({ _id: userId }),
     ]);
   } else if (user.role === "recruiter") {
@@ -92,30 +107,41 @@ export const exportAccountData = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   const user = await User.findById(userId)
-    .select("_id name email role status isEmailVerified createdAt updatedAt")
+    .select("_id name email role status isEmailVerified createdAt updatedAt googleId authProviders")
     .lean();
 
   if (!user) {
     throw new ApiError(404, "User not found.");
   }
 
+  const { googleId, ...userData } = user;
+
   let exportData = {
     exportedAt: new Date().toISOString(),
-    user,
+    user: {
+      ...userData,
+      googleLinked: Boolean(googleId),
+    },
   };
 
   if (user.role === "candidate") {
-    const [profile, applications, resumeAnalyses] = await Promise.all([
+    const [profile, applications, resumeAnalyses, savedJobs, jobAlerts] = await Promise.all([
       CandidateProfile.findOne({ user: userId }).lean(),
       Application.find({ candidate: userId })
         .populate("job", "title companyName location jobType workMode status")
         .lean(),
       ResumeAnalysis.find({ user: userId }).select("-__v").lean(),
+      SavedJob.find({ user: userId })
+        .populate("job", "title companyName location jobType workMode status")
+        .lean(),
+      JobAlert.find({ user: userId }).select("-__v").lean(),
     ]);
 
     exportData.profile = profile || null;
     exportData.applications = applications;
     exportData.resumeAnalyses = resumeAnalyses;
+    exportData.savedJobs = savedJobs;
+    exportData.jobAlerts = jobAlerts;
   } else if (user.role === "recruiter") {
     const [profile, jobs] = await Promise.all([
       RecruiterProfile.findOne({ user: userId }).lean(),

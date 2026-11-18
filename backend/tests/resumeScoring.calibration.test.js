@@ -5,6 +5,12 @@ import {
   calculateGrade,
   scoreResumeDeterministically,
   computeResumeCacheKey,
+  isEntryHeadingLine,
+  detectSectionHeading,
+  deduplicateBullets,
+  splitResumeSections,
+  parseProjects,
+  parseExperienceEntries,
 } from "../src/services/resumeScoring.service.js";
 import { sanitizeAiFeedback } from "../src/utils/aiFeedbackGuard.js";
 import { aiFeedbackSchema } from "../src/validators/resume.schemas.js";
@@ -569,12 +575,15 @@ B.Tech in Computer Science | Delhi University | 2022 - 2026`;
     assert.ok(cappedResult.subScoreReasons.projectQuality[0].startsWith("8 project(s)"));
 
     const corruptedResult = scoreResumeDeterministically({
-      text: `${bulletJoinResume}\n\uFFFD`,
+      text: `${bulletJoinResume}\n${"re\uFFFDsume ".repeat(15)}`,
       pageCount: 1,
       fileSize: 150 * 1024,
     });
     assert.ok(
-      corruptedResult.issues.some((issue) => /corrupted characters/i.test(issue.title))
+      corruptedResult.issues.some((issue) =>
+        issue.title.includes("characters in your PDF could not be read")
+      ),
+      "Expected issue regarding unreadable characters in PDF"
     );
   });
 
@@ -772,7 +781,7 @@ B.Tech in Computer Science | Bangalore University | 2020 - 2024`;
     );
     assert.ok(resIcons.subScoreReasons.atsCompatibility[2].includes("0 odd char(s)"));
 
-    const resumeWith15ReplacementChars = `${resumeWithIcons}\n${"\uFFFD".repeat(15)}`;
+    const resumeWith15ReplacementChars = `${resumeWithIcons}\n${"re\uFFFDsume ".repeat(15)}`;
     const res15 = scoreResumeDeterministically({
       text: resumeWith15ReplacementChars,
       pageCount: 1,
@@ -968,5 +977,306 @@ B.Tech in Computer Science | Delhi University | 2021 - 2025`;
       "Expected medium issue 'Skills not backed by project details' when backed share < 70%"
     );
     assert.equal(unbackedIssue.severity, "medium");
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 1 TEST: DROPPED BULLETS – fallbackBlock retained when headings exist
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 1: retains fallbackBlock (pre-heading bullets) as an untitled first block when headings exist", () => {
+    // Simulates a Projects section whose first heading is 14 words (not detected
+    // as a heading) with 3 bullets, followed by a normal heading with 5 bullets.
+    const sectionLines = [
+      // 14-word "heading" that won't be detected (too long, no cues) → goes into fallback
+      "A really long project name that is not detected because it exceeds twelve words in total count",
+      "• Built the initial prototype using React.js and Node.js for student users.",
+      "• Designed modular backend services handling 300+ user requests per minute.",
+      "• Configured deployment scripts cutting build times by 45% across staging environments.",
+      // Normal heading (short, with pipe)
+      "Auth Module | GitHub",
+      "• Implemented JWT authentication securing 200+ user accounts.",
+      "• Integrated OAuth2 login providers for Google and Microsoft.",
+      "• Optimized token refresh pipelines reducing session expiry errors by 30%.",
+      "• Built role-based access control middleware for admin and user routes.",
+      "• Automated integration tests across authentication endpoints with Jest.",
+    ];
+
+    const blocks = parseProjects(sectionLines);
+    assert.equal(blocks.length, 2, `Expected 2 blocks (fallback + headed), got ${blocks.length}`);
+
+    const totalBullets = blocks.reduce((acc, b) => acc + b.bullets.length, 0);
+    assert.equal(totalBullets, 8, `Expected 8 total bullets, got ${totalBullets}`);
+    assert.equal(blocks[0].bullets.length, 3, "Fallback block should have 3 bullets");
+    assert.equal(blocks[1].bullets.length, 5, "Headed block should have 5 bullets");
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 2 TEST: HEADING DETECTION with glyph prefix, long headings with "|"
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 2: detects heading with leading \\uF0B7 glyph and 15 words; 14-word heading with | and Live | GitHub; glyph bullet stays a bullet", () => {
+    // 15-word heading with leading private-use glyph and pipe
+    const glyphHeading15 = "\uF0B7 Campus Placement Portal for Engineering Students Built with React Node MongoDB | Live | GitHub";
+    assert.equal(
+      isEntryHeadingLine(glyphHeading15, "• Built app for 100+ users."),
+      true,
+      "15-word line with leading \\uF0B7, pipe, and link labels should be a heading"
+    );
+
+    // 14-word heading with "|" and "Live | GitHub"
+    const heading14WithPipe = "Full Stack Web Application for Real Time Campus Event Management Platform | Live | GitHub";
+    assert.equal(
+      isEntryHeadingLine(heading14WithPipe, "• Built module."),
+      true,
+      "14-word heading with | and Live | GitHub should be a heading"
+    );
+
+    // A normal bullet with a glyph must stay a bullet
+    const glyphBullet = "\uF0B7 Built responsive dashboards using React.js and Tailwind CSS for 200+ active users.";
+    assert.equal(
+      isEntryHeadingLine(glyphBullet, "• Another bullet."),
+      false,
+      "A glyph-prefixed bullet ending with period should NOT be detected as a heading"
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 3 TEST: PROJECT LINKS computed only from heading + link-only lines
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 3: bullet containing 'live deployment' and 'source code' with no link label => hasLink false", () => {
+    const sectionLines = [
+      "Task Manager App",
+      "• Built a live deployment pipeline and source code review system for internal teams.",
+      "• Configured CI/CD workflows reducing deployment cycles by 40% across branches.",
+    ];
+
+    const blocks = parseProjects(sectionLines);
+    assert.equal(blocks.length, 1);
+    assert.equal(
+      blocks[0].hasLink,
+      false,
+      "hasLink must be false when link-like words only appear in bullet text, not heading or link-only lines"
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 4 TEST: LINKEDIN/GITHUB label-only detection scoped to header
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 4: bullet 'Git and GitHub for version control' with no header link => social link NOT detected", () => {
+    const noHeaderLinkResume = `Priya Sharma
+priya.sharma@example.com | +91 98765 43210
+
+SKILLS
+React.js, Node.js, Python, SQL
+
+PROJECTS
+Task App | Live
+• Built task management system using React.js and Node.js for 100+ active users.
+• Used Git and GitHub for version control and collaborative code review workflows.
+
+EDUCATION
+B.Tech in Computer Science | Anna University | 2021 - 2025`;
+
+    const result = scoreResumeDeterministically({
+      text: noHeaderLinkResume,
+      pageCount: 1,
+      fileSize: 150 * 1024,
+    });
+
+    // The bullet mention of "GitHub" must NOT satisfy the social link check
+    assert.ok(
+      result.issues.some((i) => /No LinkedIn or GitHub link found/i.test(i.title)),
+      "Expected 'No LinkedIn or GitHub link found' issue when GitHub only appears in a bullet"
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 5 TEST: SECTION HEADINGS – all variants with leading icons
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 5: all Education and Experience heading variants with leading \\uE000-range icon produce the right section key", () => {
+    const educationVariants = [
+      "Education",
+      "Educational",
+      "Academic",
+      "Academics",
+      "Qualification",
+      "Qualifications",
+      "Educational Qualifications",
+      "Academic Background",
+    ];
+
+    const experienceVariants = [
+      "Experience",
+      "Work Experience",
+      "Professional Experience",
+      "Internship Experience",
+      "Internships",
+      "Employment",
+      "Work History",
+    ];
+
+    // Test each with a leading \\uE000-range icon
+    for (const variant of educationVariants) {
+      const lineWithIcon = `\uE001 ${variant}`;
+      const section = detectSectionHeading(lineWithIcon);
+      assert.equal(
+        section,
+        "education",
+        `Expected "${lineWithIcon}" to detect as education, got ${section}`
+      );
+    }
+
+    for (const variant of experienceVariants) {
+      const lineWithIcon = `\uE002 ${variant}`;
+      const section = detectSectionHeading(lineWithIcon);
+      assert.equal(
+        section,
+        "experience",
+        `Expected "${lineWithIcon}" to detect as experience, got ${section}`
+      );
+    }
+
+    // "E D U C A T I O N" with icon
+    const spacedWithIcon = "\uE003 E D U C A T I O N";
+    assert.equal(
+      detectSectionHeading(spacedWithIcon),
+      "education",
+      "Spaced EDUCATION with leading icon should detect as education"
+    );
+
+    // Degree evidence without heading => LOW issue, not HIGH "Missing Education"
+    const degreeOnlyResume = `Rahul Dev
+rahul@example.com | +91 98111 22334
+
+SKILLS
+React.js, Node.js, Git
+
+PROJECTS
+App One | GitHub
+• Built app using React.js for 50+ users.
+
+B.Tech in Computer Science | Delhi University | 2021 - 2025`;
+
+    const result = scoreResumeDeterministically({ text: degreeOnlyResume, pageCount: 1 });
+    assert.ok(
+      !result.issues.some((i) => i.title === "Missing 'Education' section heading"),
+      "Should NOT raise high Missing Education when degree evidence exists"
+    );
+    assert.ok(
+      result.issues.some(
+        (i) => i.severity === "low" && i.title === "Education found but without a clear heading"
+      ),
+      "Should raise LOW 'Education found but without a clear heading'"
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 6 TEST: ODD CHARACTERS – inside-word only
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 6: control char at line start counts 0; U+FFFD inside a word counts 1", () => {
+    // \\u0001 at line start, followed by valid email — should be 0 odd chars
+    const textWithLeadingCtrl = `\u0001 name@example.com
+Aarav Sharma | +91 98765 43210
+
+SKILLS
+React.js, Node.js, Python, SQL, HTML, CSS
+
+PROJECTS
+App Alpha | GitHub
+• Built app alpha using React.js and SQL for 100+ users.
+• Automated database routines for campus portal systems.
+
+EDUCATION
+B.Tech in Computer Science | Delhi University | 2021 - 2025`;
+
+    const res1 = scoreResumeDeterministically({ text: textWithLeadingCtrl, pageCount: 1 });
+    // The leading control char is NOT inside a word, so 0 odd chars
+    assert.ok(
+      res1.subScoreReasons.atsCompatibility[2].includes("0 odd char(s)"),
+      `Expected 0 odd chars for leading control character, got: ${res1.subScoreReasons.atsCompatibility[2]}`
+    );
+
+    // U+FFFD between letters — should be 1 odd char
+    const textWithInsideFFFD = `re\uFFFDsume
+Aarav Sharma | aarav@example.com | +91 98765 43210
+
+SKILLS
+React.js, Node.js, Python, SQL, HTML, CSS
+
+PROJECTS
+App Alpha | GitHub
+• Built app alpha using React.js and SQL for 100+ users.
+• Automated database routines for campus portal systems.
+
+EDUCATION
+B.Tech in Computer Science | Delhi University | 2021 - 2025`;
+
+    const res2 = scoreResumeDeterministically({ text: textWithInsideFFFD, pageCount: 1 });
+    assert.ok(
+      res2.subScoreReasons.atsCompatibility[2].includes("1 odd char(s)"),
+      `Expected 1 odd char for inside-word U+FFFD, got: ${res2.subScoreReasons.atsCompatibility[2]}`
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 7 TEST: DUPLICATES – repeated sentence inside one bullet merges
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("Item 7: 'Developed X using Brevo. Developed X through Brevo' => one merged bullet", () => {
+    const bullets = [
+      { text: "Developed X using Brevo. Developed X through Brevo", style: "unicode" },
+    ];
+
+    const { deduplicatedBullets, duplicateBulletCount } = deduplicateBullets(bullets);
+    assert.equal(deduplicatedBullets.length, 1, "Should produce exactly 1 merged bullet");
+    assert.equal(duplicateBulletCount, 1, "Should count 1 duplicate");
+    assert.equal(
+      deduplicatedBullets[0].text,
+      "Developed X using Brevo.",
+      "Merged bullet should keep only the first sentence"
+    );
+  });
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Item 1 REGRESSION TEST: Tech Stack in projects does not switch section to skills
+  // ═══════════════════════════════════════════════════════════════════════════
+  it("each project has a 'Tech Stack: ...' line plus 3 bullets => projects section keeps all its lines, projectsDetected=2", () => {
+    const resumeWithTechStackInProjects = `Aman Gupta
+aman.gupta@example.com | +91 98111 22334 | github.com/amang | linkedin.com/in/amang
+
+SUMMARY
+Full stack engineer building scalable web services.
+
+PROJECTS
+Task Manager | Live | GitHub
+Tech Stack: React.js, Node.js, PostgreSQL
+• Built task management system with role-based access for 150+ team members.
+• Optimized query performance cutting response times by 30% across endpoints.
+• Automated notification delivery pipelines with message queues and email alerts.
+
+Event Portal | Live | GitHub
+Tech Stack: TypeScript, Express.js, MongoDB
+• Designed campus event portal coordinating 500+ student registrations.
+• Implemented JWT authentication and calendar integration across chapters.
+• Refactored backend APIs improving throughput by 25% during peak loads.
+
+EXPERIENCE
+Software Intern | CloudCore | May 2025 - Jul 2025
+• Built REST endpoints using Node.js and MongoDB handling 200+ requests daily.
+
+EDUCATION
+B.Tech in Computer Science | Delhi University | 2022 - 2026`;
+
+    const { sections } = splitResumeSections(resumeWithTechStackInProjects);
+    // Projects section should keep all lines:
+    // (heading + Tech Stack + 3 bullets) x 2 projects = 10 lines
+    assert.equal(sections.projects.length, 10, `Expected 10 lines in projects section, got ${sections.projects.length}`);
+
+    const result = scoreResumeDeterministically({
+      text: resumeWithTechStackInProjects,
+      pageCount: 1,
+      fileSize: 180 * 1024,
+    });
+
+    assert.equal(result.projectHeadingsDetected, 2, "Expected projectsDetected=2");
+    assert.equal(result.projectBulletsDetected, 6, "Expected 6 project bullets detected");
+    assert.ok(result.subScoreReasons.projectQuality[0].startsWith("2 project(s)"));
   });
 });

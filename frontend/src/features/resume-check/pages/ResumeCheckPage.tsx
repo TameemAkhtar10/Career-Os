@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { profileApi } from "../../profile/services/profile.api";
 import {
@@ -44,6 +45,9 @@ import {
 } from "lucide-react";
 
 export const ResumeCheckPage: React.FC = () => {
+  const searchParams = useSearchParams();
+  const initialJobId = searchParams.get("jobId");
+
   // 1. Fetch Candidate Profile to check if resume is uploaded
   const { data: profileRes, isLoading: isLoadingProfile } = useQuery({
     queryKey: ["profile", "me"],
@@ -75,12 +79,21 @@ export const ResumeCheckPage: React.FC = () => {
     }
   }, [analysesList, currentAnalysis]);
 
-  // Form State
-  const [targetMode, setTargetMode] = useState<"none" | "job" | "description">("none");
-  const [selectedJobId, setSelectedJobId] = useState<string>("");
+  // Form State - preselected with jobId from query param if available
+  const [targetMode, setTargetMode] = useState<"none" | "job" | "description">(
+    initialJobId ? "job" : "none"
+  );
+  const [selectedJobId, setSelectedJobId] = useState<string>(initialJobId || "");
   const [jobDescription, setJobDescription] = useState<string>("");
   const [consentModalOpen, setConsentModalOpen] = useState(false);
   const [historyDrawerOpen, setHistoryDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (initialJobId) {
+      setTargetMode("job");
+      setSelectedJobId(initialJobId);
+    }
+  }, [initialJobId]);
 
   // Stepped loading progress
   const [loadingStep, setLoadingStep] = useState<number>(0);

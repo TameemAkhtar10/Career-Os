@@ -1,15 +1,16 @@
 import mongoose from "mongoose";
 import { Job } from "../models/job.model.js";
 import { RecruiterProfile } from "../models/recruiterProfile.model.js";
+import { CandidateProfile } from "../models/candidateProfile.model.js";
+import { ResumeAnalysis } from "../models/ResumeAnalysis.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { delByPrefix } from "../utils/cache.js";
+import { delByPrefix, getCache, setCache } from "../utils/cache.js";
+import { buildPublicJobsFilter, escapeRegex } from "../utils/jobFilter.js";
+import { computeJobMatch } from "../utils/jobMatch.js";
 
-/**
- * Escapes regex special characters in a user-provided string.
- */
-export const escapeRegex = (str = "") => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+export { escapeRegex };
 
 /**
  * Redacts confidential salary information when isVisible is false.
@@ -107,84 +108,16 @@ export const getPublicJobs = asyncHandler(async (req, res) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
   const skip = (page - 1) * limit;
 
-  const now = new Date();
-
-  // Base filter: open status and non-expired deadline
-  const filter = {
-    status: "open",
-    $and: [
-      {
-        $or: [
-          { applicationDeadline: null },
-          { applicationDeadline: { $gte: now } },
-        ],
-      },
-    ],
-  };
-
-  // Text / keyword search across title, skills, companyName, description
-  if (q && typeof q === "string" && q.trim().length > 0) {
-    const safeQ = escapeRegex(q.trim());
-    filter.$and.push({
-      $or: [
-        { title: { $regex: safeQ, $options: "i" } },
-        { companyName: { $regex: safeQ, $options: "i" } },
-        { skills: { $in: [new RegExp(safeQ, "i")] } },
-        { description: { $regex: safeQ, $options: "i" } },
-      ],
-    });
-  }
-
-  // Location city filter
-  if (city && typeof city === "string" && city.trim().length > 0) {
-    filter["location.city"] = { $regex: escapeRegex(city.trim()), $options: "i" };
-  }
-
-  // Work mode
-  if (["onsite", "remote", "hybrid"].includes(workMode)) {
-    filter.workMode = workMode;
-  }
-
-  // Job type
-  if (["full_time", "internship", "part_time", "contract"].includes(jobType)) {
-    filter.jobType = jobType;
-  }
-
-  // Skills filter (comma-separated list)
-  if (skills && typeof skills === "string") {
-    const skillList = skills
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (skillList.length > 0) {
-      filter.skills = {
-        $in: skillList.map((s) => new RegExp(`^${escapeRegex(s)}$`, "i")),
-      };
-    }
-  }
-
-  // Fresher friendly
-  if (fresher === "true" || fresher === true) {
-    filter.isFresherFriendly = true;
-  }
-
-  // Min salary filter: salary.max >= minSalary (or salary.min >= minSalary)
-  if (minSalary != null) {
-    const salaryVal = Number(minSalary);
-    if (!isNaN(salaryVal) && salaryVal > 0) {
-      filter.$and.push({
-        $or: [
-          { "salary.max": { $gte: salaryVal } },
-          {
-            $and: [
-              { "salary.max": null },
-              { "salary.min": { $gte: salaryVal } },
-            ],
-          },
-        ],
-      });
-    }
-  }
+  // Build filter using shared query logic (exact match with job alerts cron)
+  const filter = buildPublicJobsFilter({
+    q,
+    city,
+    workMode,
+    jobType,
+    skills,
+    fresher,
+    minSalary,
+  });
 
   // Sort options
   const sortOptions =
@@ -396,4 +329,120 @@ export const deleteJob = asyncHandler(async (req, res) => {
   await delByPrefix("cache:jobs:");
 
   res.status(200).json(new ApiResponse(200, null, "Job closed successfully."));
+});
+
+/**
+ * Calculates total experience in years from profile experience array.
+ */
+export const calculateExperienceYears = (experienceList = []) => {
+  if (!Array.isArray(experienceList) || experienceList.length === 0) return 0;
+  let totalMonths = 0;
+  const now = new Date();
+  for (const exp of experienceList) {
+    if (!exp.from) continue;
+    const from = new Date(exp.from);
+    const to = exp.to ? new Date(exp.to) : now;
+    const months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+    if (months > 0) totalMonths += months;
+  }
+  return Math.round((totalMonths / 12) * 10) / 10;
+};
+
+/**
+ * Generates actionable tips derived honestly from missing skills and resume status.
+ */
+export const generateMatchTips = (missingSkills = [], hasResume = false, hasProfileSkills = false, matchScore = null) => {
+  const tips = [];
+  if (!hasProfileSkills) {
+    tips.push("Add technical skills to your candidate profile to calculate an accurate match score.");
+  }
+  if (!hasResume) {
+    tips.push("Upload your PDF resume to unlock resume evidence scoring and keyword verification.");
+  }
+  if (missingSkills.length > 0) {
+    tips.push(`Add ${missingSkills[0]} to your profile if you have used or studied it.`);
+    if (missingSkills.length > 1) {
+      tips.push(`Strengthen your fit by adding ${missingSkills[1]} or building a project with it.`);
+    }
+  } else if (matchScore != null && matchScore >= 80) {
+    tips.push("Your listed skills match all required job requirements strongly!");
+  }
+  return tips.slice(0, 3);
+};
+
+/**
+ * GET /api/jobs/:id/match (candidate only, cached 60s)
+ * Computes deterministic job match and skill gap analysis for the logged-in candidate.
+ */
+export const getJobMatch = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user._id;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new ApiError(400, "Invalid job ID.");
+  }
+
+  const cacheKey = `cache:job:match:${userId}:${id}`;
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    return res.status(200).json(new ApiResponse(200, cached, "Job match fetched from cache."));
+  }
+
+  const now = new Date();
+  const job = await Job.findById(id).lean();
+  if (!job) {
+    throw new ApiError(404, "Job not found.");
+  }
+
+  const isDeadlinePassed = Boolean(
+    job.applicationDeadline && new Date(job.applicationDeadline).getTime() < now.getTime()
+  );
+  if (job.status !== "open" || isDeadlinePassed) {
+    throw new ApiError(404, "This job is not currently open.");
+  }
+
+  // Load candidate profile & latest resume analysis in parallel
+  const [profile, latestAnalysis] = await Promise.all([
+    CandidateProfile.findOne({ user: userId }).lean(),
+    ResumeAnalysis.findOne({ user: userId })
+      .select("keywords score createdAt")
+      .sort({ createdAt: -1 })
+      .lean(),
+  ]);
+
+  const candidateSkills = profile?.skills || [];
+  const resumeSkills = latestAnalysis?.keywords?.present || [];
+  const candidateExperienceYears = profile?.experience ? calculateExperienceYears(profile.experience) : null;
+  const hasResume = Boolean(profile?.resume?.fileId);
+  const hasProfileSkills = candidateSkills.length > 0;
+
+  const matchResult = computeJobMatch({
+    candidateSkills,
+    resumeSkills,
+    jobSkills: job.skills || [],
+    jobDescription: job.description || "",
+    candidateExperienceYears,
+    job,
+  });
+
+  const tips = generateMatchTips(
+    matchResult.missingSkills,
+    hasResume,
+    hasProfileSkills,
+    matchResult.matchScore
+  );
+
+  const payload = {
+    matchScore: matchResult.matchScore,
+    matchedSkills: matchResult.matchedSkills,
+    missingSkills: matchResult.missingSkills,
+    hasResume,
+    hasProfileSkills,
+    tips,
+  };
+
+  // Cache for 60 seconds
+  await setCache(cacheKey, payload, 60);
+
+  res.status(200).json(new ApiResponse(200, payload, "Job match calculated successfully."));
 });

@@ -10,6 +10,7 @@ import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { OfflineBanner } from "../components/feedback/OfflineBanner";
 import { ScrollToTop } from "../components/navigation/ScrollToTop";
+import { GoogleScript } from "@/features/auth/components/GoogleScript";
 import { getSiteUrl } from "@/lib/siteUrl";
 import React, { Suspense } from "react";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
           <QueryProvider>
             <Suspense fallback={null}>
               <AuthProvider>
+                <GoogleScript />
                 <ScrollToTop />
                 <OfflineBanner />
                 <Navbar />

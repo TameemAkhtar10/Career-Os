@@ -63,6 +63,23 @@ const FAQS: FaqItem[] = [
     ),
   },
   {
+    category: "Candidates",
+    question: "How do Job Alerts work, and how do I pause or delete them?",
+    answer: (
+      <div className="space-y-2">
+        <p>
+          When searching for roles with specific filters (keywords, locations, work modes, or fresher tags), click <strong>&quot;Create alert from this search&quot;</strong> to set up an alert (up to 5 per candidate). We scan for newly posted matching jobs and send a clean digest (daily or weekly).
+        </p>
+        <p>
+          Every job alert email includes a 1-click <strong>&quot;Pause this alert&quot;</strong> link requiring no login, plus a standard unsubscribe link. You can also pause, resume, change frequency, or permanently delete alerts anytime from your{" "}
+          <Link href={ROUTES.CANDIDATE.ALERTS} className="text-emerald font-semibold underline hover:text-gold">
+            Job Alerts page
+          </Link>.
+        </p>
+      </div>
+    ),
+  },
+  {
     category: "General",
     question: "What does the 'Fresher Friendly' badge mean?",
     answer: (
@@ -98,6 +115,19 @@ const FAQS: FaqItem[] = [
           Account Settings
         </Link>
         .
+      </p>
+    ),
+  },
+  {
+    category: "General",
+    question: "Can I sign in with Google, and what data does Career OS receive?",
+    answer: (
+      <p>
+        Yes, you can optionally sign in or register with Google using the official Google Identity
+        Services button. We receive your verified name, email address, and profile picture from Google.
+        We do not receive or store your Google password. You can still set a password or use email
+        and password authentication at any time, and you can permanently delete your account and all
+        associated data whenever you wish.
       </p>
     ),
   },

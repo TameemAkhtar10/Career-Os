@@ -1,8 +1,13 @@
 import { z } from "zod";
 
-export const deleteAccountSchema = z.object({
-  password: z.string().min(1, "Password is required to confirm account deletion."),
-});
+export const deleteAccountSchema = z
+  .object({
+    password: z.string().optional(),
+    confirmEmail: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.password || data.confirmEmail), {
+    message: "Password or confirmation email is required to confirm account deletion.",
+  });
 
 export const updateNotificationPreferencesSchema = z
   .object({

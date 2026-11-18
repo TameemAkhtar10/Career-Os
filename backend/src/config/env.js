@@ -37,6 +37,9 @@ export const env = {
   BREVO_API_KEY: _optional("BREVO_API_KEY"),  // validated lazily on first send
   EMAIL_FROM: _optional("EMAIL_FROM"),         // must be a verified sender in Brevo
 
+  // Google OAuth (GIS ID Token flow - optional at startup, validated lazily on first request)
+  GOOGLE_CLIENT_ID: _optional("GOOGLE_CLIENT_ID"),
+
   // Redis — optional. App works without it (caching disabled, in-memory rate limiting).
   REDIS_URL: _optional("REDIS_URL"),
 

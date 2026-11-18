@@ -9,7 +9,7 @@ import { RecruiterProfile } from "../types/profile";
 import { Logo } from "./layout/Logo";
 import { ROUTES } from "../constants/routes";
 import { Button } from "./ui/Button";
-import { Menu, X, LogOut, User as UserIcon, Briefcase, PlusCircle, Building, Settings } from "lucide-react";
+import { Menu, X, LogOut, User as UserIcon, Briefcase, PlusCircle, Building, Settings, Bookmark, Bell } from "lucide-react";
 
 /** Inner component so the hook only runs when authenticated */
 const RecruiterAvatar: React.FC<{ initial: string }> = ({ initial }) => {
@@ -94,6 +94,12 @@ export const Navbar: React.FC = () => {
               </Link>
               <Link href={ROUTES.JOBS} className={navLinkClass(isActive(ROUTES.JOBS))}>
                 Jobs
+              </Link>
+              <Link
+                href={ROUTES.CANDIDATE.SAVED_JOBS}
+                className={navLinkClass(isActive(ROUTES.CANDIDATE.SAVED_JOBS))}
+              >
+                Saved
               </Link>
               <Link
                 href={ROUTES.CANDIDATE.RESUME_CHECK}
@@ -220,6 +226,20 @@ export const Navbar: React.FC = () => {
                       >
                         <Briefcase className="w-3.5 h-3.5" />
                         Applications
+                      </Link>
+                      <Link
+                        href={ROUTES.CANDIDATE.SAVED_JOBS}
+                        className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
+                      >
+                        <Bookmark className="w-3.5 h-3.5" />
+                        Saved Jobs
+                      </Link>
+                      <Link
+                        href={ROUTES.CANDIDATE.ALERTS}
+                        className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
+                      >
+                        <Bell className="w-3.5 h-3.5" />
+                        Job Alerts
                       </Link>
                     </>
                   )}
@@ -354,6 +374,13 @@ export const Navbar: React.FC = () => {
                       className={navLinkClass(isActive(ROUTES.JOBS))}
                     >
                       Jobs
+                    </Link>
+                    <Link
+                      href={ROUTES.CANDIDATE.SAVED_JOBS}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive(ROUTES.CANDIDATE.SAVED_JOBS))}
+                    >
+                      Saved
                     </Link>
                     <Link
                       href={ROUTES.CANDIDATE.RESUME_CHECK}

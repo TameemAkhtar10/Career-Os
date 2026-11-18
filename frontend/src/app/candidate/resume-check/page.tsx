@@ -1,5 +1,7 @@
 import { Metadata } from "next";
+import { Suspense } from "react";
 import { ResumeCheckPage } from "@/features/resume-check/pages/ResumeCheckPage";
+import { BrandLoader } from "@/components/feedback/BrandLoader";
 
 export const metadata: Metadata = {
   title: "Resume Score Checker",
@@ -8,6 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <ResumeCheckPage />;
+  return (
+    <Suspense fallback={<BrandLoader message="Loading resume checker..." />}>
+      <ResumeCheckPage />
+    </Suspense>
+  );
 }
 

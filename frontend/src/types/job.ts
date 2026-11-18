@@ -72,3 +72,51 @@ export interface JobsQueryParams {
   limit?: number;
 }
 
+export interface SavedJobItem {
+  _id: string;
+  savedAt: string;
+  isClosed: boolean;
+  isExpired: boolean;
+  isDeleted: boolean;
+  job: Job | null;
+}
+
+export interface SavedJobsResponseData {
+  savedJobs: SavedJobItem[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface JobAlertFilters {
+  q?: string;
+  skills?: string[];
+  location?: string;
+  workMode?: WorkMode | "";
+  jobType?: JobType | "";
+  fresher?: boolean;
+  minSalary?: number | null;
+}
+
+export interface JobAlert {
+  _id: string;
+  user: string;
+  name: string;
+  filters: JobAlertFilters;
+  frequency: "daily" | "weekly";
+  active: boolean;
+  lastSentAt: string | null;
+  lastCheckedAt: string;
+  createdAt: string;
+}
+
+export interface JobMatchData {
+  matchScore: number | null;
+  matchedSkills: string[];
+  missingSkills: string[];
+  hasResume: boolean;
+  hasProfileSkills: boolean;
+  tips: string[];
+}
+
