@@ -225,7 +225,7 @@ export const MyApplicationsPage: React.FC = () => {
                         <div className="h-2 w-full rounded-full bg-champagne-border/40 overflow-hidden">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-emerald to-gold-accent transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(5, app.matchScore))}%` }}
+                          style={{ width: `${Math.min(100, Math.max(5, app.matchScore ?? 0))}%` }}
                           />
                         </div>
                       </div>
