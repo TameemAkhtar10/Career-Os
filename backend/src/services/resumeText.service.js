@@ -1,5 +1,15 @@
+import { createRequire } from "node:module";
 import { openResumeDownloadStream, findResumeFile } from "./gridfs.service.js";
 import { ApiError } from "../utils/ApiError.js";
+
+const require = createRequire(import.meta.url);
+
+let pdfParse = null;
+try {
+  pdfParse = require("pdf-parse/lib/pdf-parse.js");
+} catch (err) {
+  console.warn("[resumeText] Warning: Initial require of pdf-parse/lib/pdf-parse.js failed:", err?.message);
+}
 
 const MAX_PDF_SIZE = 5 * 1024 * 1024; // 5 MB
 const MAX_TEXT_LENGTH = 20000; // max 20,000 characters
@@ -14,10 +24,12 @@ async function streamToBuffer(stream, maxSize = MAX_PDF_SIZE) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let totalSize = 0;
+    let settled = false;
 
     stream.on("data", (chunk) => {
       totalSize += chunk.length;
       if (totalSize > maxSize) {
+        settled = true;
         stream.destroy();
         reject(new ApiError(413, "Resume file exceeds maximum permitted size of 5MB."));
         return;
@@ -26,11 +38,24 @@ async function streamToBuffer(stream, maxSize = MAX_PDF_SIZE) {
     });
 
     stream.on("end", () => {
-      resolve(Buffer.concat(chunks));
+      if (!settled) {
+        settled = true;
+        resolve(Buffer.concat(chunks));
+      }
+    });
+
+    stream.on("close", () => {
+      if (!settled) {
+        settled = true;
+        resolve(Buffer.concat(chunks));
+      }
     });
 
     stream.on("error", (err) => {
-      reject(new ApiError(500, `Failed to stream resume file: ${err.message}`));
+      if (!settled) {
+        settled = true;
+        reject(new ApiError(500, `Failed to stream resume file: ${err.message}`));
+      }
     });
   });
 }
@@ -56,7 +81,10 @@ export function detectTableOrMultiColumn(text) {
 }
 
 /**
- * Extracts text and structural metadata from a GridFS resume file
+ * Extracts text and structural metadata from a GridFS resume file.
+ *
+ * Throws descriptive ApiErrors so callers can present a meaningful message
+ * to the user instead of a generic 500.
  *
  * @param {string|import("mongoose").Types.ObjectId} fileId
  * @returns {Promise<{
@@ -69,32 +97,60 @@ export function detectTableOrMultiColumn(text) {
  * }>}
  */
 export async function extractResumeTextFromGridFS(fileId) {
-  const fileMeta = await findResumeFile(fileId);
-  if (!fileMeta) {
-    throw new ApiError(404, "Resume file not found in storage.");
+  // ── 1. Verify file exists in GridFS ────────────────────────────────────────
+  let fileMeta;
+  try {
+    fileMeta = await findResumeFile(fileId);
+  } catch (err) {
+    console.error("[resumeText] findResumeFile threw:", err?.message || err);
+    throw new ApiError(500, "Could not locate your resume in storage. Please re-upload and try again.");
   }
 
-  const downloadStream = openResumeDownloadStream(fileId);
-  const pdfBuffer = await streamToBuffer(downloadStream, MAX_PDF_SIZE);
-  let pdfParse;
-  try {
-    // v1 ka direct path, debug-mode ENOENT bug se bachata hai
-    const imported = await import("pdf-parse/lib/pdf-parse.js");
-    pdfParse = imported.default || imported;
-  } catch (err) {
+  if (!fileMeta) {
+    console.error(`[resumeText] File not found in GridFS for fileId=${fileId}`);
     throw new ApiError(
-      500,
-      "pdf-parse dependency is not installed. Please run 'npm install pdf-parse@1.1.1' in the backend directory."
+      404,
+      "Your resume file was not found in storage. Please re-upload your resume and try again."
     );
   }
 
+  // ── 2. Stream file into buffer ──────────────────────────────────────────────
+  let pdfBuffer;
+  try {
+    const downloadStream = openResumeDownloadStream(fileId);
+    pdfBuffer = await streamToBuffer(downloadStream, MAX_PDF_SIZE);
+  } catch (err) {
+    // Re-throw ApiErrors unchanged (size limit etc.)
+    if (err?.statusCode) throw err;
+    console.error("[resumeText] GridFS stream error:", err?.message || err);
+    throw new ApiError(500, "Failed to download your resume from storage. Please try again.");
+  }
+
+  // ── 3. Load pdf-parse (fallback if not loaded) ─────────────────────────────
+  if (!pdfParse) {
+    try {
+      const imported = await import("pdf-parse/lib/pdf-parse.js");
+      pdfParse = imported.default || imported;
+    } catch (err) {
+      console.error("[resumeText] pdf-parse import failed:", err?.message || err);
+      throw new ApiError(
+        500,
+        "PDF parsing dependency is unavailable. Please contact support."
+      );
+    }
+  }
+
+  // ── 4. Parse PDF ────────────────────────────────────────────────────────────
   let pdfData;
   try {
     pdfData = await pdfParse(pdfBuffer);
   } catch (err) {
-    // sirf error message log karo, resume text kabhi nahi
-    console.error("[resumeText] pdf-parse failed:", err?.message);
-    throw new ApiError(400, "Unable to parse resume PDF. The file may be corrupt or encrypted.");
+    // Log parse error (never log resume content)
+    console.error("[resumeText] pdf-parse failed:", err?.message || err);
+    throw new ApiError(
+      400,
+      "Unable to read your resume PDF. The file may be corrupt, password-protected, or image-only. Please upload a text-based PDF."
+    );
   }
 
   const rawText = (pdfData.text || "").trim();

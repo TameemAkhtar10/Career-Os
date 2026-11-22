@@ -7,6 +7,7 @@ export const generateCoverLetterSchema = z.object({
   tone: z.enum(["professional", "friendly", "concise"], {
     errorMap: () => ({ message: "Tone must be professional, friendly, or concise" }),
   }),
+  format: z.enum(["letter", "note"]).optional().default("letter"),
   consent: z.boolean().optional(),
 });
 

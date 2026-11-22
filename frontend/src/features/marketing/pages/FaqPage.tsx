@@ -63,14 +63,28 @@ const FAQS: FaqItem[] = [
   },
   {
     category: "Candidates",
-    question: "How does the AI Cover Letter feature work?",
+    question: "How does the AI Cover Letter and Application Note work?",
     answer: (
       <div className="space-y-2">
         <p>
-          On any open job listing, candidates can click <strong>&quot;Write a cover letter&quot;</strong> to generate a customized draft in a professional, friendly, or concise tone.
+          On any open job listing, candidates can click <strong>&quot;Write a cover letter&quot;</strong> to generate a customized draft in a professional, friendly, or concise tone. When submitting your application, you can also click <strong>&quot;Draft with AI&quot;</strong> to generate a concise, personalized application note directly into the cover note field.
         </p>
         <p>
-          The feature uses the same privacy-preserving, redacted-resume AI processing as our Resume Checker. No personal contact details are ever sent to the AI, and we never store your cover letter or resume text on our servers. You can edit the text, copy it, or download it as a .txt file. Withdrawing AI consent from your Resume Checker history or Account Settings immediately revokes access for both features.
+          Both features use the same privacy-preserving, redacted-resume AI processing as our Resume Checker. No personal contact details are ever sent to the AI, and we never store your cover letter, note, or resume text on our servers. The AI note uses the same redacted-resume processing as the cover letter and is not stored by us. You can edit the text freely and fill in any bracketed placeholders before applying. Withdrawing AI consent immediately revokes access for both features.
+        </p>
+      </div>
+    ),
+  },
+  {
+    category: "Candidates",
+    question: "How does the Resume Builder work?",
+    answer: (
+      <div className="space-y-2">
+        <p>
+          Career OS includes a built-in <strong>Resume Builder</strong> that generates clean, single-column, text-based PDF resumes specifically engineered for automated ATS parsers and hiring managers.
+        </p>
+        <p>
+          The Resume Builder is 100% deterministic and free of charge. The Resume Builder stores your working draft in your private account database solely for your editing convenience; it is not sent to any external AI provider, is included in account data exports, and can be cleared or deleted anytime. You can preview formatting live, test parsability with the &quot;How this will be read&quot; quality check, download the PDF, or save it directly as your official profile resume in one click.
         </p>
       </div>
     ),
@@ -191,7 +205,7 @@ export const FaqPage: React.FC = () => {
             Honest, straightforward answers about how Career OS works for candidates, recruiters, and hiring managers.
           </p>
           <p className="text-xs text-muted">
-            Last updated: <span className="text-body font-medium">November 18, 2026</span>
+            Last updated: <span className="text-body font-medium">November 20, 2026</span>
           </p>
         </div>
 

@@ -80,6 +80,24 @@ export const deleteResumeFromGridFS = async (fileId) => {
 };
 
 /**
+ * Safely converts an input into a mongoose.Types.ObjectId.
+ * Returns null if the value cannot be converted.
+ */
+function toObjectId(fileId) {
+  if (!fileId) return null;
+  if (fileId instanceof mongoose.Types.ObjectId) return fileId;
+  const str = typeof fileId === "string" ? fileId : fileId?.toString?.();
+  if (str && mongoose.Types.ObjectId.isValid(str)) {
+    try {
+      return new mongoose.Types.ObjectId(str);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
  * Opens a readable download stream for a resume file stored in GridFS
  *
  * @param {string|mongoose.Types.ObjectId} fileId
@@ -87,7 +105,10 @@ export const deleteResumeFromGridFS = async (fileId) => {
  */
 export const openResumeDownloadStream = (fileId) => {
   const bucket = getResumeBucket();
-  const objectId = typeof fileId === "string" ? new mongoose.Types.ObjectId(fileId) : fileId;
+  const objectId = toObjectId(fileId);
+  if (!objectId) {
+    throw new ApiError(400, "Invalid resume file ID in storage.");
+  }
   return bucket.openDownloadStream(objectId);
 };
 
@@ -101,10 +122,15 @@ export const findResumeFile = async (fileId) => {
   if (!fileId) return null;
   const bucket = getResumeBucket();
   try {
-    const objectId = typeof fileId === "string" ? new mongoose.Types.ObjectId(fileId) : fileId;
+    const objectId = toObjectId(fileId);
+    if (!objectId) {
+      console.warn(`[GridFS findResumeFile] Invalid fileId format: ${fileId}`);
+      return null;
+    }
     const files = await bucket.find({ _id: objectId }).toArray();
     return files[0] || null;
   } catch (err) {
+    console.error(`[GridFS findResumeFile] fileId=${fileId} error:`, err?.message || err);
     return null;
   }
 };

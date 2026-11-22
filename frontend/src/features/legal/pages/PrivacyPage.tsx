@@ -11,7 +11,7 @@ import { ROUTES } from "../../../constants/routes";
 import { Shield, Lock, Eye, Download, Trash2, Mail, Cookie } from "lucide-react";
 
 export const PrivacyPage: React.FC = () => {
-  const lastUpdated = "November 18, 2026";
+  const lastUpdated = "November 20, 2026";
 
   return (
     <div className="min-h-screen bg-champagne/40 py-12 px-4 sm:px-6 lg:px-8">
@@ -83,21 +83,28 @@ export const PrivacyPage: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold text-emerald-dark mb-1">C. Optional AI Features (Resume Checker &amp; Cover Letter)</h3>
+              <h3 className="font-semibold text-emerald-dark mb-1">C. Optional AI Features (Resume Checker &amp; Cover Letter / Notes)</h3>
               <p>
-                When candidates choose to run the optional AI Resume Score Checker or generate an AI Cover Letter, your resume is first strictly
+                When candidates choose to run the optional AI Resume Score Checker or generate an AI Cover Letter or Application Note, your resume is first strictly
                 redacted on our servers before any third-party transmission. Your name, email address, phone numbers,
                 all personal URLs (LinkedIn, GitHub), and street addresses are removed. Only this anonymized text is
                 sent to a third-party AI provider to generate formatting tips, bullet point suggestions, or tailored draft letters.
-                The AI cover letter uses the same redacted-resume AI processing, and generated letters are never stored on our servers.
+                The AI cover letter and application note use the same redacted-resume processing as the cover letter and are not stored by us.
                 We never store raw resume text in the analysis database; only calculated scores, keyword presence lists,
                 and recommendations are retained for your private viewing. You may withdraw your AI consent at any time
-                from the Resume Checker history panel or Account Settings; withdrawing AI consent immediately covers both resume analysis and cover letter generation.
+                from the Resume Checker history panel or Account Settings; withdrawing AI consent immediately covers resume analysis, cover letters, and application notes.
               </p>
             </div>
 
             <div>
-              <h3 className="font-semibold text-emerald-dark mb-1">C. Recruiter &amp; Job Posting Data</h3>
+              <h3 className="font-semibold text-emerald-dark mb-1">D. Resume Builder</h3>
+              <p>
+                The Resume Builder stores your working draft in your private account database solely for your editing convenience; it is completely deterministic, is not sent to any external AI provider, is included in account data exports, and can be cleared or deleted at any time.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-emerald-dark mb-1">E. Recruiter &amp; Job Posting Data</h3>
               <p>
                 Recruiters provide organization name, optional logo, website URL, and opening specifications
                 (title, requirements, work mode, salary visibility, and application deadline).
@@ -105,7 +112,7 @@ export const PrivacyPage: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold text-emerald-dark mb-1">D. Application History</h3>
+              <h3 className="font-semibold text-emerald-dark mb-1">F. Application History</h3>
               <p>
                 We log timestamps, status transitions (<code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">applied</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">shortlisted</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">rejected</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">hired</code>), cover notes, and computed skill match scores.
               </p>

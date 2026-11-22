@@ -151,4 +151,61 @@ describe("AI Cover Letter Server-Side Guard & Policies", () => {
     assert.equal(checkConsent(revokedConsent), false);
     assert.equal(checkConsent(null), false);
   });
+
+  it("handles format='note' mode respecting max length and cutting at last full sentence", () => {
+    // Generate a long note that exceeds maxChars=200 for testing
+    const longNote = {
+      subject: "Some Subject",
+      body: "I am a full-stack developer with experience in React and Node.js. I have built 3 academic projects focusing on responsive design. Furthermore, I am eager to contribute to [company name]. This final sentence would exceed the limit and should be cut.",
+      usedSkills: ["React", "Node.js"],
+    };
+
+    const guarded = guardCoverLetter(longNote, resumeText, {
+      detectedSkills,
+      format: "note",
+      maxChars: 180,
+    });
+
+    assert.equal(guarded.aiAvailable, true);
+    assert.equal(guarded.coverLetter.subject, "", "Note mode should produce an empty subject line");
+    assert.ok(guarded.coverLetter.body.length <= 180, "Note length must not exceed maxChars");
+    assert.ok(
+      guarded.coverLetter.body.endsWith("."),
+      "Truncation should cut cleanly at the last full sentence"
+    );
+    assert.ok(
+      !guarded.coverLetter.body.includes("final sentence would exceed"),
+      "Overflow sentence should be excluded"
+    );
+  });
+
+  it("applies factual grounding rules in format='note' mode", () => {
+    const noteWithInventedClaims = {
+      subject: "",
+      body: "I built 3 applications using React. I also increased user engagement by 88% using Kubernetes. I look forward to joining your team.",
+      usedSkills: ["React", "Kubernetes"],
+    };
+
+    const guarded = guardCoverLetter(noteWithInventedClaims, resumeText, {
+      detectedSkills,
+      format: "note",
+    });
+
+    assert.equal(guarded.aiAvailable, true);
+    assert.ok(!guarded.coverLetter.body.includes("88%"), "Invented number 88% must be dropped");
+    assert.ok(!guarded.coverLetter.usedSkills.includes("Kubernetes"), "Invented tool must be removed from usedSkills");
+  });
+
+  it("ensures default format remains 'letter' when format is omitted", () => {
+    const input = {
+      subject: "Application for Engineer",
+      body: "I am pleased to apply for this role. I have worked on 3 full-stack applications with React and Node.js. My academic background has prepared me to contribute effectively to your development initiatives.",
+      usedSkills: ["React", "Node.js"],
+    };
+
+    // Calling without format option
+    const guarded = guardCoverLetter(input, resumeText, { detectedSkills });
+    assert.equal(guarded.aiAvailable, true);
+    assert.equal(guarded.coverLetter.subject, "Application for Engineer", "Default format should preserve subject");
+  });
 });

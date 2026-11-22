@@ -5,6 +5,7 @@ import { env } from "../config/env.js";
 import { getRateLimitStore } from "../config/redis.js";
 import { getJobRunner } from "../jobs/index.js";
 import { runJobAlerts } from "../jobs/jobAlerts.job.js";
+import { getSchedulerStatus } from "../jobs/scheduler.js";
 
 const router = Router();
 
@@ -78,6 +79,25 @@ const handleJobAlertsCron = async (_req, res) => {
 
 router.get("/job-alerts", cronRateLimiter, verifyCronSecret, handleJobAlertsCron);
 router.post("/job-alerts", cronRateLimiter, verifyCronSecret, handleJobAlertsCron);
+
+/**
+ * GET /api/cron/status
+ * Returns health, execution metrics, next run schedule, and config for internal cron scheduler.
+ * Protected by verifyCronSecret (x-cron-secret header).
+ */
+router.get("/status", cronRateLimiter, verifyCronSecret, async (_req, res) => {
+  try {
+    const statusData = await getSchedulerStatus();
+    res.status(200).json(statusData);
+  } catch (err) {
+    console.error("[cron:status] Failed to fetch scheduler status:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve cron status",
+      error: err.message,
+    });
+  }
+});
 
 /**
  * POST /api/cron/:task

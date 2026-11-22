@@ -18,6 +18,8 @@ import { ErrorState } from "../../../components/feedback/ErrorState";
 import { BookmarkButton } from "../components/BookmarkButton";
 import { JobMatchCard } from "../components/JobMatchCard";
 import { CoverLetterModal } from "../components/CoverLetterModal";
+import { ConsentDialog } from "../../resume-check/components/ConsentDialog";
+import { apiClient } from "../../../config/api";
 import { toast } from "sonner";
 import {
   Briefcase,
@@ -29,6 +31,7 @@ import {
   Building2,
   ArrowLeft,
   CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 export interface JobDetailPageProps {
@@ -47,6 +50,13 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
   const [isCoverLetterOpen, setIsCoverLetterOpen] = useState(false);
   const [coverNote, setCoverNote] = useState("");
   const [hasAppliedLocal, setHasAppliedLocal] = useState(false);
+
+  // Draft with AI states for cover note
+  const [isDraftingNote, setIsDraftingNote] = useState(false);
+  const [isNoteConsentOpen, setIsNoteConsentOpen] = useState(false);
+  const [showReplaceConfirm, setShowReplaceConfirm] = useState(false);
+  const [pendingNoteDraft, setPendingNoteDraft] = useState<string | null>(null);
+  const [showBracketConfirm, setShowBracketConfirm] = useState(false);
 
   // Check if candidate has already applied via their applications list
   const isCandidate = isAuthenticated && user?.role === "candidate";
@@ -96,13 +106,79 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
     setIsApplyModalOpen(true);
   };
 
-  const handleApplySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (coverNote.length > 1000) {
-      toast.error("Cover note cannot exceed 1000 characters.");
-      return;
-    }
+  const remainingBrackets = coverNote.match(/\[[^\]]+\]/g) || [];
 
+  const executeDraftNote = async (grantedConsent = false) => {
+    setIsDraftingNote(true);
+    try {
+      const res = await apiClient<{
+        aiAvailable: boolean;
+        body?: string;
+        message?: string;
+      }>("/api/cover-letter/generate", {
+        method: "POST",
+        body: JSON.stringify({
+          jobId: job._id,
+          tone: "professional",
+          format: "note",
+          consent: grantedConsent ? true : undefined,
+        }),
+      });
+
+      if (res.data?.aiAvailable && res.data.body) {
+        const generatedNote = res.data.body;
+        if (coverNote.trim().length > 0) {
+          setPendingNoteDraft(generatedNote);
+          setShowReplaceConfirm(true);
+        } else {
+          const prev = coverNote;
+          setCoverNote(generatedNote);
+          toast.success("Cover note drafted with AI!", {
+            action: {
+              label: "Undo",
+              onClick: () => setCoverNote(prev),
+            },
+          });
+        }
+      } else {
+        toast.error(
+          res.data?.message || "Generated note did not meet verification standards. Please try again."
+        );
+      }
+    } catch (err: any) {
+      const status = err?.statusCode || err?.response?.status;
+      const msg = err?.message || err?.response?.data?.message || "";
+
+      if (status === 400 && msg.includes("AI consent is required")) {
+        setIsNoteConsentOpen(true);
+        return;
+      }
+      if (status === 400 && msg.includes("upload your resume")) {
+        toast.error("Please upload your resume in PDF format first.", {
+          action: {
+            label: "Go to Profile",
+            onClick: () => router.push("/candidate/profile"),
+          },
+        });
+        return;
+      }
+      if (status === 429) {
+        toast.error(
+          msg || "You have reached your daily cover letter limit. Please try again tomorrow."
+        );
+        return;
+      }
+      if (status === 503) {
+        toast.error("AI is unavailable right now, try again later.");
+        return;
+      }
+      toast.error(msg || "Failed to generate note.");
+    } finally {
+      setIsDraftingNote(false);
+    }
+  };
+
+  const doSubmitApplication = async () => {
     try {
       await applyMutation.mutateAsync({
         jobId: job._id,
@@ -110,6 +186,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
       });
       setHasAppliedLocal(true);
       setIsApplyModalOpen(false);
+      setShowBracketConfirm(false);
       setCoverNote("");
       toast.success("Application submitted successfully!");
     } catch (err: any) {
@@ -117,9 +194,11 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
       if (err?.response?.status === 409 || msg.includes("already applied")) {
         setHasAppliedLocal(true);
         setIsApplyModalOpen(false);
+        setShowBracketConfirm(false);
         toast.info("You have already applied for this job.");
       } else if (msg.includes("Complete your profile")) {
         setIsApplyModalOpen(false);
+        setShowBracketConfirm(false);
         toast.error("Please complete your profile before applying.", {
           action: {
             label: "Edit Profile",
@@ -130,6 +209,19 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
         toast.error(msg);
       }
     }
+  };
+
+  const handleApplySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (coverNote.length > 1000) {
+      toast.error("Cover note cannot exceed 1000 characters.");
+      return;
+    }
+    if (remainingBrackets.length > 0) {
+      setShowBracketConfirm(true);
+      return;
+    }
+    doSubmitApplication();
   };
 
   const salaryDisplay = formatSalary(job.salary);
@@ -422,11 +514,30 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
       >
         <form onSubmit={handleApplySubmit} className="space-y-4">
           <div>
-            <label htmlFor="coverNote" className="block text-xs font-semibold text-emerald-ink mb-1">
-              Cover Note (Optional)
-            </label>
-            <p className="text-[11px] text-body-text/70 mb-2">
+            <div className="flex items-center justify-between mb-1">
+              <label htmlFor="coverNote" className="block text-xs font-semibold text-emerald-ink">
+                Cover Note (Optional)
+              </label>
+              {!isClosed && isCandidate && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => executeDraftNote()}
+                  isLoading={isDraftingNote}
+                  disabled={isDraftingNote}
+                  className="gap-1.5 text-[11px] h-7 px-2.5 border-gold-accent/40 hover:border-gold-accent hover:bg-gold-accent/5 text-emerald-ink font-medium"
+                >
+                  <Sparkles className="w-3 h-3 text-gold-accent" />
+                  Draft with AI
+                </Button>
+              )}
+            </div>
+            <p className="text-[11px] text-body-text/70 mb-1">
               Highlight your top projects, relevant skills, or why you are a great fit for this role.
+            </p>
+            <p className="text-[11px] text-gold-accent/90 italic mb-2">
+              Draft from your resume. Check every sentence and fill the [brackets] before applying.
             </p>
             <textarea
               id="coverNote"
@@ -437,6 +548,15 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
               placeholder="e.g. Hello hiring team, I have built several projects using React and Node.js..."
               className="w-full px-3 py-2 text-sm rounded-xl bg-champagne/20 border border-champagne-border text-body-text placeholder:text-body-text/40 focus:outline-none focus:ring-2 focus:ring-gold-accent transition-all resize-none"
             />
+            {remainingBrackets.length > 0 && (
+              <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-700 dark:text-amber-300 flex items-start gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                <div>
+                  <span className="font-semibold">Unfilled placeholders: </span>
+                  {Array.from(new Set(remainingBrackets)).join(", ")}
+                </div>
+              </div>
+            )}
             <div className="flex justify-between items-center text-[11px] text-body-text/60 mt-1">
               <span>Maximum 1,000 characters</span>
               <span className={coverNote.length > 950 ? "text-error-red font-semibold" : ""}>
@@ -464,6 +584,94 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
           </div>
         </form>
       </Modal>
+
+      {/* Confirm Replace Modal */}
+      <Modal
+        isOpen={showReplaceConfirm}
+        onClose={() => {
+          setShowReplaceConfirm(false);
+          setPendingNoteDraft(null);
+        }}
+        title="Replace existing cover note?"
+        description="Your current note will be replaced with the AI-drafted note."
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-body-text/80">
+            You already typed a note. Would you like to overwrite it with the AI draft? You will still be able to undo via notification.
+          </p>
+          <div className="flex justify-end gap-3 pt-2 border-t border-champagne-border/60">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowReplaceConfirm(false);
+                setPendingNoteDraft(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => {
+                const prev = coverNote;
+                setCoverNote(pendingNoteDraft || "");
+                setShowReplaceConfirm(false);
+                setPendingNoteDraft(null);
+                toast.success("Cover note replaced with AI draft!", {
+                  action: {
+                    label: "Undo",
+                    onClick: () => setCoverNote(prev),
+                  },
+                });
+              }}
+            >
+              Replace
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Confirm Bracket Modal */}
+      <Modal
+        isOpen={showBracketConfirm}
+        onClose={() => setShowBracketConfirm(false)}
+        title="Placeholders Detected"
+        description="Your note still contains brackets."
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-body-text/80">
+            Your note still has [brackets] ({Array.from(new Set(remainingBrackets)).join(", ")}). Send anyway?
+          </p>
+          <div className="flex justify-end gap-3 pt-2 border-t border-champagne-border/60">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowBracketConfirm(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => doSubmitApplication()}
+              isLoading={applyMutation.isPending}
+            >
+              Send anyway
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Consent Dialog for Note */}
+      <ConsentDialog
+        isOpen={isNoteConsentOpen}
+        onCancel={() => setIsNoteConsentOpen(false)}
+        onConfirm={async () => {
+          setIsNoteConsentOpen(false);
+          await executeDraftNote(true);
+        }}
+      />
 
       {/* AI Cover Letter Drawer/Modal */}
       <CoverLetterModal

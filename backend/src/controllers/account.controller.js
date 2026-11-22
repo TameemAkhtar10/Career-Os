@@ -7,6 +7,7 @@ import { Otp } from "../models/otp.model.js";
 import { ResumeAnalysis } from "../models/ResumeAnalysis.js";
 import { ResumeAnalysisDailyCount } from "../models/ResumeAnalysisDailyCount.js";
 import { CoverLetterDailyCount } from "../models/CoverLetterDailyCount.js";
+import { ResumeDraft } from "../models/ResumeDraft.js";
 import { SavedJob } from "../models/savedJob.model.js";
 import { JobAlert } from "../models/jobAlert.model.js";
 import { deleteFileFromImageKit } from "../services/imagekit.service.js";
@@ -68,6 +69,7 @@ export const deleteAccount = asyncHandler(async (req, res) => {
       ResumeAnalysis.deleteMany({ user: userId }),
       ResumeAnalysisDailyCount.deleteMany({ user: userId }),
       CoverLetterDailyCount.deleteMany({ user: userId }),
+      ResumeDraft.deleteOne({ user: userId }),
       SavedJob.deleteMany({ user: userId }),
       JobAlert.deleteMany({ user: userId }),
       User.deleteOne({ _id: userId }),
@@ -127,7 +129,7 @@ export const exportAccountData = asyncHandler(async (req, res) => {
   };
 
   if (user.role === "candidate") {
-    const [profile, applications, resumeAnalyses, savedJobs, jobAlerts] = await Promise.all([
+    const [profile, applications, resumeAnalyses, savedJobs, jobAlerts, resumeDraft] = await Promise.all([
       CandidateProfile.findOne({ user: userId }).lean(),
       Application.find({ candidate: userId })
         .populate("job", "title companyName location jobType workMode status")
@@ -137,6 +139,7 @@ export const exportAccountData = asyncHandler(async (req, res) => {
         .populate("job", "title companyName location jobType workMode status")
         .lean(),
       JobAlert.find({ user: userId }).select("-__v").lean(),
+      ResumeDraft.findOne({ user: userId }).select("-__v").lean(),
     ]);
 
     exportData.profile = profile || null;
@@ -144,6 +147,7 @@ export const exportAccountData = asyncHandler(async (req, res) => {
     exportData.resumeAnalyses = resumeAnalyses;
     exportData.savedJobs = savedJobs;
     exportData.jobAlerts = jobAlerts;
+    exportData.resumeDraft = resumeDraft || null;
   } else if (user.role === "recruiter") {
     const [profile, jobs] = await Promise.all([
       RecruiterProfile.findOne({ user: userId }).lean(),

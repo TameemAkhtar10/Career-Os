@@ -132,13 +132,24 @@ export const ResumeCard: React.FC<ResumeCardProps> = ({ resume }) => {
       )}
 
       {!hasResume ? (
-        <div
-          className="flex flex-col items-center justify-center border-2 border-dashed border-champagne-border rounded-2xl py-10 px-6 cursor-pointer hover:bg-champagne/20 transition-all"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Upload className="w-8 h-8 text-gold-accent mb-3" />
-          <p className="text-sm font-semibold text-emerald-ink">Click to upload your resume</p>
-          <p className="text-xs text-body-text/60 mt-1">PDF only · Max 2 MB</p>
+        <div className="space-y-3">
+          <div
+            className="flex flex-col items-center justify-center border-2 border-dashed border-champagne-border rounded-2xl py-10 px-6 cursor-pointer hover:bg-champagne/20 transition-all"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Upload className="w-8 h-8 text-gold-accent mb-3" />
+            <p className="text-sm font-semibold text-emerald-ink">Click to upload your resume</p>
+            <p className="text-xs text-body-text/60 mt-1">PDF only · Max 2 MB</p>
+          </div>
+          <div className="text-center pt-1">
+            <p className="text-xs text-body-text/70 mb-2">Don&apos;t have a PDF resume ready?</p>
+            <Link href={ROUTES.CANDIDATE.RESUME_BUILDER}>
+              <Button variant="outline" size="sm" className="text-xs gap-1.5 border-emerald/30 hover:border-emerald text-emerald-ink">
+                <FileText className="w-3.5 h-3.5 text-emerald" />
+                Build a clean resume with Resume Builder
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-xl bg-champagne/20 border border-champagne-border">
@@ -177,6 +188,17 @@ export const ResumeCard: React.FC<ResumeCardProps> = ({ resume }) => {
               <Trash2 className="w-3.5 h-3.5" /> Delete
             </Button>
           </div>
+        </div>
+      )}
+
+      {hasResume && (
+        <div className="flex items-center justify-between p-3 rounded-xl bg-champagne/15 border border-champagne-border text-xs">
+          <span className="text-body-text/80">Need to update or build an ATS-friendly resume?</span>
+          <Link href={ROUTES.CANDIDATE.RESUME_BUILDER}>
+            <Button variant="ghost" size="sm" className="text-xs text-emerald-ink font-semibold hover:bg-champagne/40">
+              Open Resume Builder →
+            </Button>
+          </Link>
         </div>
       )}
 

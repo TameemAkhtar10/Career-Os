@@ -9,7 +9,7 @@ import { RecruiterProfile } from "../types/profile";
 import { Logo } from "./layout/Logo";
 import { ROUTES } from "../constants/routes";
 import { Button } from "./ui/Button";
-import { Menu, X, LogOut, User as UserIcon, Briefcase, PlusCircle, Building, Settings, Bookmark, Bell } from "lucide-react";
+import { Menu, X, LogOut, User as UserIcon, Briefcase, PlusCircle, Building, Settings, Bookmark, Bell, FileText } from "lucide-react";
 
 /** Inner component so the hook only runs when authenticated */
 const RecruiterAvatar: React.FC<{ initial: string }> = ({ initial }) => {
@@ -106,6 +106,12 @@ export const Navbar: React.FC = () => {
                 className={navLinkClass(isActive(ROUTES.CANDIDATE.RESUME_CHECK))}
               >
                 Resume score
+              </Link>
+              <Link
+                href={ROUTES.CANDIDATE.RESUME_BUILDER}
+                className={navLinkClass(isActive(ROUTES.CANDIDATE.RESUME_BUILDER))}
+              >
+                Resume builder
               </Link>
               <Link
                 href={ROUTES.CANDIDATE.APPLICATIONS}
@@ -219,6 +225,13 @@ export const Navbar: React.FC = () => {
                       >
                         <UserIcon className="w-3.5 h-3.5" />
                         My Profile
+                      </Link>
+                      <Link
+                        href={ROUTES.CANDIDATE.RESUME_BUILDER}
+                        className="flex items-center gap-2 px-4 py-2 text-xs text-body hover:bg-champagne/60 transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        Resume Builder
                       </Link>
                       <Link
                         href={ROUTES.CANDIDATE.APPLICATIONS}
@@ -388,6 +401,13 @@ export const Navbar: React.FC = () => {
                       className={navLinkClass(isActive(ROUTES.CANDIDATE.RESUME_CHECK))}
                     >
                       Resume score
+                    </Link>
+                    <Link
+                      href={ROUTES.CANDIDATE.RESUME_BUILDER}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive(ROUTES.CANDIDATE.RESUME_BUILDER))}
+                    >
+                      Resume builder
                     </Link>
                     <Link
                       href={ROUTES.CANDIDATE.APPLICATIONS}
