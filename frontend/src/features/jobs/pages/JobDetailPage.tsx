@@ -472,7 +472,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
 
                 {/* AI Cover Letter Button (Candidate Only, Job Open) */}
                 {!isClosed && (!isAuthenticated || isCandidate) && (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -487,6 +487,22 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, initialJob 
                     >
                       <Sparkles className="w-3.5 h-3.5 text-gold-accent" />
                       Write a cover letter
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (!isAuthenticated) {
+                          router.push(`/login?next=/jobs/${job._id}`);
+                          return;
+                        }
+                        router.push(`/candidate/interview-prep?jobId=${job._id}&role=${encodeURIComponent(job.title)}`);
+                      }}
+                      className="w-full gap-2 text-xs border-emerald-dark/30 hover:border-emerald-dark hover:bg-emerald-dark/5 text-emerald-dark font-semibold"
+                    >
+                      <Users className="w-3.5 h-3.5 text-emerald-dark" />
+                      Prepare for this interview
                     </Button>
                   </div>
                 )}

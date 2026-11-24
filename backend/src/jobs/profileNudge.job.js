@@ -193,6 +193,7 @@ export const run = async ({ dryRun = false, force = false } = {}) => {
         await sendScheduledDigestEmail({
           to: user.email,
           toName: user.name,
+          preheader: `Boost your profile from ${completeness}% to unlock more fresher-friendly job opportunities.`,
           subject: `Career OS: Boost Your Profile to Unlock More Opportunities (${completeness}% Complete)`,
           heading: "Profile Completion Tips",
           bodyHtml,

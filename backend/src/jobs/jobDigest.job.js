@@ -175,18 +175,21 @@ export const run = async ({ dryRun = false, force = false } = {}) => {
           type: "jobAlerts",
         });
 
-        const cardsHtml = jobs
+        const displayedJobs = jobs.slice(0, 10);
+        const cardsHtml = displayedJobs
           .map((j) => {
             const salaryText = formatSalary(j.salary);
             const locationText = [j.location?.city, j.workMode].filter(Boolean).join(" &bull; ");
             const fresherBadge = j.isFresherFriendly
-              ? `<span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #A7F3D0; margin-left: 6px;">Fresher Friendly</span>`
+              ? `<span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #A7F3D0; margin-left: 6px;">Fresher friendly</span>`
               : "";
 
             return `
-              <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 10px; padding: 18px; margin-bottom: 14px;">
+              <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
                 <div style="margin-bottom: 6px;">
-                  <span style="font-size: 16px; font-weight: 700; color: #064E3B;">${escapeHtml(j.title)}</span>
+                  <a href="${frontendUrl}/jobs/${j._id}" target="_blank" style="font-size: 16px; font-weight: 700; color: #064E3B; text-decoration: none;">
+                    ${escapeHtml(j.title)}
+                  </a>
                   ${fresherBadge}
                 </div>
                 <div style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">
@@ -194,12 +197,12 @@ export const run = async ({ dryRun = false, force = false } = {}) => {
                 </div>
                 ${
                   salaryText
-                    ? `<div style="font-size: 13px; color: #C8963E; font-weight: 600; margin-bottom: 12px;">💰 ${escapeHtml(salaryText)}</div>`
+                    ? `<div style="font-size: 13px; color: #C8963E; font-weight: 600; margin-bottom: 10px;">💰 ${escapeHtml(salaryText)}</div>`
                     : ""
                 }
                 <div style="text-align: right;">
-                  <a href="${frontendUrl}/jobs/${j._id}"
-                     style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 16px; border-radius: 6px;">
+                  <a href="${frontendUrl}/jobs/${j._id}" target="_blank"
+                     style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-size: 13px; font-weight: 600; text-decoration: none; padding: 7px 14px; border-radius: 6px;">
                     View Job &rarr;
                   </a>
                 </div>
@@ -211,31 +214,32 @@ export const run = async ({ dryRun = false, force = false } = {}) => {
         const bodyHtml = `
           <p style="margin: 0 0 16px;">Hi ${escapeHtml(user.name || "Candidate")},</p>
           <p style="margin: 0 0 20px;">
-            Here are the newest open positions that match your skills posted in the last 24 hours:
+            Here are the newest open positions matching your skills posted in the last 24 hours:
           </p>
           ${cardsHtml}
           <div style="margin-top: 24px; text-align: center;">
-            <a href="${frontendUrl}/jobs" style="color: #064E3B; font-weight: 600; text-decoration: underline; font-size: 14px;">
-              Explore all open opportunities on Career OS &rarr;
+            <a href="${frontendUrl}/jobs" target="_blank" style="color: #064E3B; font-weight: 600; text-decoration: underline; font-size: 14px;">
+              View all jobs on Career OS &rarr;
             </a>
           </div>
         `;
 
-        const textContent = `Hi ${user.name || "Candidate"},\n\nHere are new jobs matching your skills:\n\n${jobs
+        const textContent = `Hi ${user.name || "Candidate"},\n\nHere are new jobs matching your skills:\n\n${displayedJobs
           .map(
             (j, i) =>
-              `${i + 1}. ${j.title} at ${j.companyName} (${j.location?.city || "Remote"})\n   Apply: ${frontendUrl}/jobs/${j._id}`
+              `${i + 1}. ${j.title} at ${j.companyName} (${j.location?.city || "Remote"})${j.isFresherFriendly ? " [Fresher friendly]" : ""}\n   Apply: ${frontendUrl}/jobs/${j._id}`
           )
-          .join("\n\n")}\n\nExplore more: ${frontendUrl}/jobs`;
+          .join("\n\n")}\n\nView all jobs: ${frontendUrl}/jobs`;
 
         await sendScheduledDigestEmail({
           to: user.email,
           toName: user.name,
           subject: `Career OS: Top ${jobs.length} New Job Match${jobs.length > 1 ? "es" : ""} for You`,
           heading: "Daily Job Alert",
+          preheader: `Top ${jobs.length} new roles matching your skills on Career OS.`,
           bodyHtml,
           textContent,
-          ctaText: "Browse All Jobs",
+          ctaText: "View all jobs",
           ctaUrl: `${frontendUrl}/jobs`,
           unsubscribeToken,
           unsubscribeType: "jobAlerts",

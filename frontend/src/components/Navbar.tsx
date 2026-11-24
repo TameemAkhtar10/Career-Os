@@ -120,6 +120,18 @@ export const Navbar: React.FC = () => {
                 My applications
               </Link>
               <Link
+                href={ROUTES.CANDIDATE.TRACKER}
+                className={navLinkClass(isActive(ROUTES.CANDIDATE.TRACKER))}
+              >
+                Tracker
+              </Link>
+              <Link
+                href={ROUTES.CANDIDATE.INTERVIEW_PREP}
+                className={navLinkClass(isActive(ROUTES.CANDIDATE.INTERVIEW_PREP))}
+              >
+                Interview prep
+              </Link>
+              <Link
                 href={ROUTES.CANDIDATE.PROFILE}
                 className={navLinkClass(isActive(ROUTES.CANDIDATE.PROFILE))}
               >
@@ -415,6 +427,20 @@ export const Navbar: React.FC = () => {
                       className={navLinkClass(isActive(ROUTES.CANDIDATE.APPLICATIONS))}
                     >
                       My applications
+                    </Link>
+                    <Link
+                      href={ROUTES.CANDIDATE.TRACKER}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive(ROUTES.CANDIDATE.TRACKER))}
+                    >
+                      Tracker
+                    </Link>
+                    <Link
+                      href={ROUTES.CANDIDATE.INTERVIEW_PREP}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive(ROUTES.CANDIDATE.INTERVIEW_PREP))}
+                    >
+                      Interview prep
                     </Link>
                     <Link
                       href={ROUTES.CANDIDATE.PROFILE}

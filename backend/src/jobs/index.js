@@ -3,6 +3,7 @@ import { run as runRecruiterDigest } from "./recruiterDigest.job.js";
 import { run as runJobAutoClose } from "./jobAutoClose.job.js";
 import { run as runProfileNudge } from "./profileNudge.job.js";
 import { runJobAlerts } from "./jobAlerts.job.js";
+import { runTrackerReminders } from "./trackerReminders.job.js";
 
 export const TASK_MAP = {
   "job-digest": runJobDigest,
@@ -10,6 +11,7 @@ export const TASK_MAP = {
   "job-auto-close": runJobAutoClose,
   "profile-nudge": runProfileNudge,
   "job-alerts": runJobAlerts,
+  "tracker-reminders": runTrackerReminders,
 };
 
 export const getJobRunner = (taskName) => {
@@ -22,5 +24,5 @@ export {
   runJobAutoClose,
   runProfileNudge,
   runJobAlerts,
+  runTrackerReminders,
 };
-

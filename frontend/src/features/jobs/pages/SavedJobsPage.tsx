@@ -155,12 +155,19 @@ export const SavedJobsPage: React.FC = () => {
                   </button>
 
                   {job && !isClosed ? (
-                    <Link href={ROUTES.JOB_DETAIL(job._id)} className="flex-1 sm:flex-initial">
-                      <Button size="sm" variant="primary" className="w-full gap-1.5">
-                        <span>View Role</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+                      <Link href={`/candidate/tracker`} className="hidden sm:inline-block">
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs text-[#064E3B] border-[#064E3B]/30 hover:border-[#064E3B]">
+                          <span>Track</span>
+                        </Button>
+                      </Link>
+                      <Link href={ROUTES.JOB_DETAIL(job._id)} className="flex-1 sm:flex-initial">
+                        <Button size="sm" variant="primary" className="w-full gap-1.5">
+                          <span>View Role</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Button>
+                      </Link>
+                    </div>
                   ) : (
                     <Link href={ROUTES.JOBS} className="flex-1 sm:flex-initial">
                       <Button size="sm" variant="outline" className="w-full">

@@ -11,7 +11,7 @@ import { ROUTES } from "../../../constants/routes";
 import { Shield, Lock, Eye, Download, Trash2, Mail, Cookie } from "lucide-react";
 
 export const PrivacyPage: React.FC = () => {
-  const lastUpdated = "November 20, 2026";
+  const lastUpdated = "November 24, 2026";
 
   return (
     <div className="min-h-screen bg-champagne/40 py-12 px-4 sm:px-6 lg:px-8">
@@ -112,9 +112,16 @@ export const PrivacyPage: React.FC = () => {
             </div>
 
             <div>
-              <h3 className="font-semibold text-emerald-dark mb-1">F. Application History</h3>
+              <h3 className="font-semibold text-emerald-dark mb-1">F. Application History &amp; Tracker</h3>
               <p>
-                We log timestamps, status transitions (<code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">applied</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">shortlisted</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">rejected</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">hired</code>), cover notes, and computed skill match scores.
+                We log timestamps, status transitions (<code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">applied</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">shortlisted</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">rejected</code>, <code className="text-xs bg-champagne px-1 py-0.5 rounded text-emerald">hired</code>), cover notes, and candidate personal tracking notes, follow-up deadlines, and interview schedule timestamps.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="font-semibold text-emerald-dark mb-1">G. Interview Preparation &amp; Feedback</h3>
+              <p>
+                When you use our Interview Preparation studio, your practice responses and generated feedback are stored securely in your private session history. Responses are evaluated with strict data minimisation: text is never retained for training third-party foundation models, and candidate sessions can be deleted individually or permanently via account deletion.
               </p>
             </div>
           </div>

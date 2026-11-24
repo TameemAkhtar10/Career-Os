@@ -80,6 +80,28 @@ const handleJobAlertsCron = async (_req, res) => {
 router.get("/job-alerts", cronRateLimiter, verifyCronSecret, handleJobAlertsCron);
 router.post("/job-alerts", cronRateLimiter, verifyCronSecret, handleJobAlertsCron);
 
+const handleTrackerRemindersCron = async (req, res) => {
+  try {
+    const runner = getJobRunner("tracker-reminders");
+    const dryRun = req.query.dryRun === "true";
+    const result = await runner({ dryRun });
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (err) {
+    console.error("[cron:tracker-reminders] Error running reminders:", err.message);
+    res.status(500).json({
+      success: false,
+      message: "Tracker reminders cron execution error",
+      error: err.message,
+    });
+  }
+};
+
+router.get("/tracker-reminders", cronRateLimiter, verifyCronSecret, handleTrackerRemindersCron);
+router.post("/tracker-reminders", cronRateLimiter, verifyCronSecret, handleTrackerRemindersCron);
+
 /**
  * GET /api/cron/status
  * Returns health, execution metrics, next run schedule, and config for internal cron scheduler.

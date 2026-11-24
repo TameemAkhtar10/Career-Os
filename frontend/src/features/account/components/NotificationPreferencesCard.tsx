@@ -90,6 +90,7 @@ export const NotificationPreferencesCard: React.FC = () => {
   const jobAlerts = preferences?.jobAlerts ?? true;
   const applicantDigest = preferences?.applicantDigest ?? true;
   const profileNudges = preferences?.profileNudges ?? true;
+  const trackerReminders = (preferences as any)?.trackerReminders ?? true;
 
   return (
     <Card className="p-6 bg-cream border-border space-y-6">
@@ -162,6 +163,32 @@ export const NotificationPreferencesCard: React.FC = () => {
               id="pref-profile-nudges"
               checked={profileNudges}
               onChange={(val) => updatePreference("profileNudges", val)}
+              disabled={isUpdating}
+            />
+          </div>
+        )}
+
+        {/* Candidate Option 3: Application Tracker Reminders */}
+        {(isCandidate || isAdmin) && (
+          <div className="flex items-start justify-between gap-4 p-4 rounded-xl bg-champagne/20 border border-border/60 transition-all hover:border-gold/50">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-emerald" />
+                <label
+                  htmlFor="pref-tracker-reminders"
+                  className="text-sm font-semibold text-emerald cursor-pointer"
+                >
+                  Daily Application Tracker Reminders
+                </label>
+              </div>
+              <p className="text-xs text-body/70 leading-relaxed">
+                Receive morning reminders (08:30 AM IST) for upcoming interview rounds, follow-up deadlines, and applications awaiting response for over 14 days.
+              </p>
+            </div>
+            <ToggleSwitch
+              id="pref-tracker-reminders"
+              checked={trackerReminders}
+              onChange={(val) => updatePreference("trackerReminders" as any, val)}
               disabled={isUpdating}
             />
           </div>

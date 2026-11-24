@@ -14,7 +14,7 @@ import { REGISTERED_JOBS, activeRuns } from "../src/jobs/scheduler.js";
 
 describe("Internal Production Cron Scheduler", () => {
   describe("1. Job Registration & Schedules", () => {
-    it("registers all 5 required jobs with Asia/Kolkata timezone", () => {
+    it("registers all 6 required jobs with Asia/Kolkata timezone", () => {
       const names = REGISTERED_JOBS.map((j) => j.name);
       assert.deepEqual(names.sort(), [
         "job-alerts",
@@ -22,6 +22,7 @@ describe("Internal Production Cron Scheduler", () => {
         "job-digest",
         "profile-nudge",
         "recruiter-digest",
+        "tracker-reminders",
       ].sort());
 
       for (const job of REGISTERED_JOBS) {
@@ -38,6 +39,7 @@ describe("Internal Production Cron Scheduler", () => {
       assert.equal(scheduleMap["profile-nudge"], "0 11 * * 1", "Profile Nudge at Monday 11:00");
       assert.equal(scheduleMap["recruiter-digest"], "0 18 * * *", "Recruiter Digest at 18:00 daily");
       assert.equal(scheduleMap["job-alerts"], "0 * * * *", "Job Alerts at minute 0 of every hour");
+      assert.equal(scheduleMap["tracker-reminders"], "30 8 * * *", "Tracker Reminders at 08:30 daily IST");
     });
   });
 

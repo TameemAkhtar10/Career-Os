@@ -5,6 +5,7 @@ export interface NotificationPreferences {
   jobAlerts: boolean;
   applicantDigest: boolean;
   profileNudges: boolean;
+  trackerReminders?: boolean;
 }
 
 export const accountApi = {

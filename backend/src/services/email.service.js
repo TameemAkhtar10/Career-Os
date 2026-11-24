@@ -4,6 +4,9 @@ import {
   incrementDailyEmailCount,
   hasReachedDailyCap,
 } from "./emailCap.service.js";
+import { renderEmail, escapeHtml } from "./emailLayout.js";
+
+export { escapeHtml };
 
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 const TIMEOUT_MS = 10_000;
@@ -17,101 +20,10 @@ const assertConfig = () => {
   }
 };
 
-// ── HTML Escaper ──────────────────────────────────────────────────────────────
-export const escapeHtml = (str) => {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-};
-
-// ── Shared Branded Email Layout ───────────────────────────────────────────────
-/**
- * Renders a responsive, branded HTML email using the Career OS design system:
- * Emerald Ink #064E3B, Champagne #F8E7C9, Cream #FFF8EC, Gold #C8963E.
- */
-const renderBrandedEmail = ({ title, heading, bodyHtml, ctaText, ctaUrl, footerNote, customFooterHtml }) => {
-  const currentYear = new Date().getFullYear();
-  const ctaButtonHtml = ctaUrl && ctaText
-    ? `
-      <div style="margin: 28px 0; text-align: center;">
-        <a href="${escapeHtml(ctaUrl)}"
-           style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; font-weight: 600; text-decoration: none; padding: 13px 28px; border-radius: 8px; border: 1px solid #C8963E; box-shadow: 0 2px 4px rgba(6, 78, 59, 0.15);">
-          ${escapeHtml(ctaText)} &rarr;
-        </a>
-      </div>
-    `
-    : "";
-
-  const footerExtra = footerNote
-    ? `<p style="margin: 16px 0 0; font-size: 12px; line-height: 1.5; color: #6B7280;">${escapeHtml(footerNote)}</p>`
-    : customFooterHtml || "";
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>${escapeHtml(title || heading)}</title>
-</head>
-<body style="margin: 0; padding: 0; background-color: #F8E7C9; font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #2D3748;">
-  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #F8E7C9; padding: 40px 16px;">
-    <tr>
-      <td align="center">
-        <!-- Brand Header -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 540px; margin-bottom: 20px;">
-          <tr>
-            <td align="center">
-              <span style="font-family: Fraunces, Georgia, serif; font-size: 24px; font-weight: 700; color: #064E3B; letter-spacing: -0.02em;">
-                Career OS
-              </span>
-            </td>
-          </tr>
-        </table>
-
-        <!-- Main Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0"
-               style="max-width: 540px; background-color: #FFF8EC; border: 1px solid #E8D3AA; border-radius: 14px; padding: 36px 32px; box-shadow: 0 4px 20px rgba(6, 78, 59, 0.06);">
-          <tr>
-            <td>
-              <h1 style="margin: 0 0 16px; font-family: Fraunces, Georgia, serif; font-size: 22px; font-weight: 700; color: #064E3B; line-height: 1.3;">
-                ${escapeHtml(heading)}
-              </h1>
-
-              <div style="font-size: 15px; line-height: 1.6; color: #2D3748;">
-                ${bodyHtml}
-              </div>
-
-              ${ctaButtonHtml}
-              ${footerExtra}
-            </td>
-          </tr>
-        </table>
-
-        <!-- Footer -->
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width: 540px; margin-top: 24px; text-align: center;">
-          <tr>
-            <td>
-              <p style="margin: 0; font-size: 12px; color: #6B7280;">
-                &copy; ${currentYear} Career OS &bull; The Operating System for Careers &bull; All rights reserved.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
-};
-
 // ── Core Send Helper ──────────────────────────────────────────────────────────
 /**
  * POST to the Brevo REST API with a 10-second timeout.
- * Accepts both htmlContent and textContent for plain-text fallback.
+ * Accepts both htmlContent and textContent for plain-text multipart support.
  * Throws ApiError(502) on non-2xx responses.
  */
 const brevoPost = async ({ sender, to, subject, htmlContent, textContent, headers }) => {
@@ -165,48 +77,60 @@ export const sendOtpEmail = async (to, otp, purpose) => {
   assertConfig();
 
   const isReset = purpose === "reset_password";
-  const heading = isReset ? "Reset Your Password" : "Verify Your Email";
+  const title = isReset ? "Reset Your Password" : "Verify Your Email";
+  const preheader = isReset
+    ? `Your password reset code is ${otp}. Valid for 5 minutes.`
+    : `Your email verification code is ${otp}. Valid for 5 minutes.`;
   const subject = isReset
     ? "Career OS – Password Reset Code"
     : "Career OS – Email Verification Code";
 
+  const frontendUrl = (env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001").replace(/\/+$/, "");
+  const resetUrl = `${frontendUrl}/reset-password`;
+
   const bodyHtml = `
-    <p style="margin: 0 0 16px;">
-      ${isReset
-        ? "We received a request to reset your Career OS account password. Use the verification code below to proceed:"
-        : "Welcome to Career OS! Use the verification code below to verify your email address:"}
+    <p style="margin: 0 0 16px 0;">
+      ${
+        isReset
+          ? "We received a request to reset your Career OS account password. Use the verification code below to proceed:"
+          : "Welcome to Career OS! Use the verification code below to confirm your email address and activate your account:"
+      }
     </p>
 
-    <div style="text-align: center; background-color: #FFFFFF; border: 2px dashed #C8963E; border-radius: 10px; padding: 20px; margin: 24px 0;">
-      <span style="font-family: 'Plus Jakarta Sans', monospace; font-size: 32px; font-weight: 700; letter-spacing: 10px; color: #064E3B;">
-        ${escapeHtml(otp)}
-      </span>
-    </div>
+    <!-- Large monospaced OTP display block -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 24px 0;">
+      <tr>
+        <td align="center" style="background-color: #FFFFFF; border: 2px dashed #C8963E; border-radius: 10px; padding: 22px 16px;">
+          <span style="font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace; font-size: 34px; font-weight: 700; letter-spacing: 10px; color: #064E3B; display: inline-block;">
+            ${escapeHtml(otp)}
+          </span>
+        </td>
+      </tr>
+    </table>
 
-    <p style="margin: 0 0 8px; font-size: 13px; color: #6B7280;">
+    <p style="margin: 0 0 10px 0; font-size: 14px; color: #6B7280;">
       ⏱ This code expires in <strong>5 minutes</strong>.
     </p>
-    <p style="margin: 0; font-size: 13px; color: #6B7280;">
-      If you did not request this code, you can safely ignore this email.
+    <p style="margin: 0; font-size: 14px; color: #6B7280;">
+      If you did not request this verification code, you can safely ignore this email. Your account remains secure.
     </p>
   `;
 
-  const textContent = `${heading}\n\n${
-    isReset
-      ? "Use the code below to reset your Career OS account password:"
-      : "Use the code below to verify your email address on Career OS:"
-  }\n\nOTP Code: ${otp}\n\nThis code expires in 5 minutes. If you did not request this, you can safely ignore this email.\n\n© Career OS`;
+  const { html, text } = renderEmail({
+    preheader,
+    title,
+    bodyHtml,
+    cta: isReset ? { label: "Reset Password Page", url: resetUrl } : undefined,
+    footerNote: "Never share this code with anyone. Career OS staff will never ask for your verification code.",
+    reasonText: "You received this operational email because a verification request was initiated for this address.",
+  });
 
   await brevoPost({
     sender: { email: env.EMAIL_FROM, name: "Career OS" },
     to: [{ email: to }],
     subject,
-    htmlContent: renderBrandedEmail({
-      title: heading,
-      heading,
-      bodyHtml,
-    }),
-    textContent,
+    htmlContent: html,
+    textContent: text,
   });
 };
 
@@ -226,7 +150,7 @@ export const sendApplicationStatusEmail = async (
     status === "shortlisted"
       ? "Application Shortlisted"
       : status === "hired"
-      ? "Congratulations – You're Hired! 🎉"
+      ? "Congratulations – You're Hired!"
       : "Application Status Update";
 
   const statusMessage =
@@ -234,49 +158,53 @@ export const sendApplicationStatusEmail = async (
       ? `Great news! Your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong> has been <strong>shortlisted</strong>. The hiring team will be in touch with you regarding next steps.`
       : status === "hired"
       ? `Congratulations! You have been selected and <strong>hired</strong> for the role of <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong>!`
-      : `Thank you for your interest in <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong>. After careful review, the hiring team has decided not to proceed with your application at this time. We encourage you to keep exploring new opportunities on Career OS.`;
+      : `Thank you for your interest in <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong>. After review, the hiring team has decided not to proceed with your application at this time. We encourage you to keep exploring new opportunities on Career OS.`;
 
-  const heading = statusLabel;
+  const title = statusLabel;
+  const preheader = `Status update on your application for ${jobTitle} at ${companyName}: ${status.toUpperCase()}`;
   const subject = `Career OS: Application Update for ${jobTitle} at ${companyName} (${status.toUpperCase()})`;
-  const frontendUrl = env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001";
+  const frontendUrl = (env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001").replace(/\/+$/, "");
   const ctaUrl = `${frontendUrl}/candidate/applications`;
 
   const bodyHtml = `
-    <p style="margin: 0 0 16px;">Hi ${escapeHtml(candidateName || "Candidate")},</p>
-    <p style="margin: 0 0 20px;">${statusMessage}</p>
+    <p style="margin: 0 0 16px 0;">Hi ${escapeHtml(candidateName || "Candidate")},</p>
+    <p style="margin: 0 0 20px 0;">${statusMessage}</p>
 
-    <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; padding: 18px; margin: 20px 0;">
-      <p style="margin: 0 0 8px; font-size: 14px; color: #2D3748;"><strong>Role:</strong> ${escapeHtml(jobTitle)}</p>
-      <p style="margin: 0 0 8px; font-size: 14px; color: #2D3748;"><strong>Company:</strong> ${escapeHtml(companyName)}</p>
-      <p style="margin: 0; font-size: 14px; color: #2D3748;">
-        <strong>New Status:</strong>
-        <span style="display: inline-block; background-color: #FBF3E2; color: #064E3B; font-weight: 600; padding: 2px 8px; border-radius: 4px; text-transform: capitalize; border: 1px solid #E8D3AA;">
-          ${escapeHtml(status)}
-        </span>
-      </p>
-    </div>
+    <!-- Status Details Card -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; margin: 20px 0;">
+      <tr>
+        <td style="padding: 18px 20px;">
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #2D3748;">
+            <strong>Role:</strong> ${escapeHtml(jobTitle)}
+          </p>
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #2D3748;">
+            <strong>Company:</strong> ${escapeHtml(companyName)}
+          </p>
+          <p style="margin: 0; font-size: 14px; color: #2D3748;">
+            <strong>New Status:</strong>
+            <span style="display: inline-block; background-color: #FBF3E2; color: #064E3B; font-weight: 600; padding: 2px 10px; border-radius: 4px; text-transform: capitalize; border: 1px solid #E8D3AA;">
+              ${escapeHtml(status)}
+            </span>
+          </p>
+        </td>
+      </tr>
+    </table>
   `;
 
-  const textContent = `Hi ${candidateName || "Candidate"},\n\n${
-    status === "shortlisted"
-      ? `Great news! Your application for ${jobTitle} at ${companyName} has been shortlisted.`
-      : status === "hired"
-      ? `Congratulations! You have been hired for ${jobTitle} at ${companyName}!`
-      : `Thank you for your interest in ${jobTitle} at ${companyName}. The hiring team has decided not to move forward at this time.`
-  }\n\nRole: ${jobTitle}\nCompany: ${companyName}\nStatus: ${status}\n\nView your applications: ${ctaUrl}\n\n© Career OS`;
+  const { html, text } = renderEmail({
+    preheader,
+    title,
+    bodyHtml,
+    cta: { label: "View Application Status", url: ctaUrl },
+    reasonText: "You received this email because you submitted an application on Career OS.",
+  });
 
   await brevoPost({
     sender: { email: env.EMAIL_FROM, name: "Career OS" },
     to: [{ email: to, name: candidateName || "Candidate" }],
     subject,
-    htmlContent: renderBrandedEmail({
-      title: heading,
-      heading,
-      bodyHtml,
-      ctaText: "View Application Status",
-      ctaUrl,
-    }),
-    textContent,
+    htmlContent: html,
+    textContent: text,
   });
 };
 
@@ -291,47 +219,57 @@ export const sendApplicationConfirmationEmail = async (
 ) => {
   assertConfig();
 
-  const heading = "Application Submitted Successfully";
+  const title = "Application Submitted Successfully";
+  const preheader = `Your application for ${jobTitle} at ${companyName} has been received.`;
   const subject = `Career OS: Application Confirmed for ${jobTitle} at ${companyName}`;
-  const frontendUrl = env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001";
+  const frontendUrl = (env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001").replace(/\/+$/, "");
   const ctaUrl = `${frontendUrl}/candidate/applications`;
 
   const bodyHtml = `
-    <p style="margin: 0 0 16px;">Hi ${escapeHtml(candidateName || "Candidate")},</p>
-    <p style="margin: 0 0 20px;">
-      Your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong> has been successfully submitted.
+    <p style="margin: 0 0 16px 0;">Hi ${escapeHtml(candidateName || "Candidate")},</p>
+    <p style="margin: 0 0 20px 0;">
+      Your application for <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong> has been successfully submitted and delivered to the hiring team.
     </p>
 
-    <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; padding: 18px; margin: 20px 0;">
-      <p style="margin: 0 0 8px; font-size: 14px; color: #2D3748;"><strong>Role:</strong> ${escapeHtml(jobTitle)}</p>
-      <p style="margin: 0 0 8px; font-size: 14px; color: #2D3748;"><strong>Company:</strong> ${escapeHtml(companyName)}</p>
-      <p style="margin: 0; font-size: 14px; color: #2D3748;">
-        <strong>Status:</strong>
-        <span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-weight: 600; padding: 2px 8px; border-radius: 4px; border: 1px solid #10B981;">
-          Submitted
-        </span>
-      </p>
-    </div>
+    <!-- Details card -->
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; margin: 20px 0;">
+      <tr>
+        <td style="padding: 18px 20px;">
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #2D3748;">
+            <strong>Role:</strong> ${escapeHtml(jobTitle)}
+          </p>
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #2D3748;">
+            <strong>Company:</strong> ${escapeHtml(companyName)}
+          </p>
+          <p style="margin: 0; font-size: 14px; color: #2D3748;">
+            <strong>Status:</strong>
+            <span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-weight: 600; padding: 2px 10px; border-radius: 4px; border: 1px solid #10B981;">
+              Submitted
+            </span>
+          </p>
+        </td>
+      </tr>
+    </table>
 
     <p style="margin: 0; font-size: 14px; color: #6B7280;">
       You will receive an email update whenever the recruiter changes your application status.
     </p>
   `;
 
-  const textContent = `Hi ${candidateName || "Candidate"},\n\nYour application for ${jobTitle} at ${companyName} has been successfully submitted.\n\nRole: ${jobTitle}\nCompany: ${companyName}\nStatus: Submitted\n\nTrack your applications: ${ctaUrl}\n\n© Career OS`;
+  const { html, text } = renderEmail({
+    preheader,
+    title,
+    bodyHtml,
+    cta: { label: "Track Your Applications", url: ctaUrl },
+    reasonText: "You received this email because you submitted an application on Career OS.",
+  });
 
   await brevoPost({
     sender: { email: env.EMAIL_FROM, name: "Career OS" },
     to: [{ email: to, name: candidateName || "Candidate" }],
     subject,
-    htmlContent: renderBrandedEmail({
-      title: heading,
-      heading,
-      bodyHtml,
-      ctaText: "Track Your Applications",
-      ctaUrl,
-    }),
-    textContent,
+    htmlContent: html,
+    textContent: text,
   });
 };
 
@@ -349,57 +287,65 @@ export const sendRecruiterNewApplicantEmail = async (
 ) => {
   assertConfig();
 
-  const heading = "New Applicant for Your Job Posting";
+  const title = "New Applicant for Your Job Posting";
+  const preheader = `A new candidate applied for ${jobTitle} (${matchScore}% skill match).`;
   const subject = `Career OS: New Applicant for ${jobTitle} (${matchScore}% Match)`;
-  const frontendUrl = env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001";
+  const frontendUrl = (env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001").replace(/\/+$/, "");
   const ctaUrl = `${frontendUrl}/recruiter/jobs/${jobId}/applicants`;
 
   const bodyHtml = `
-    <p style="margin: 0 0 16px;">Hi ${escapeHtml(recruiterName || "Recruiter")},</p>
-    <p style="margin: 0 0 20px;">
+    <p style="margin: 0 0 16px 0;">Hi ${escapeHtml(recruiterName || "Recruiter")},</p>
+    <p style="margin: 0 0 20px 0;">
       A new candidate has just applied for your open listing <strong>${escapeHtml(jobTitle)}</strong> at <strong>${escapeHtml(companyName)}</strong>.
     </p>
 
-    <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; padding: 18px; margin: 20px 0;">
-      <p style="margin: 0 0 8px; font-size: 14px; color: #2D3748;"><strong>Role:</strong> ${escapeHtml(jobTitle)}</p>
-      <p style="margin: 0 0 8px; font-size: 14px; color: #2D3748;">
-        <strong>Skill Match Score:</strong>
-        <span style="display: inline-block; background-color: #FBF3E2; color: #064E3B; font-weight: 700; padding: 2px 8px; border-radius: 4px; border: 1px solid #C8963E;">
-          ${matchScore}%
-        </span>
-      </p>
-      <p style="margin: 0; font-size: 13px; color: #6B7280;">
-        Review their skills, experience, and profile on your recruiter dashboard.
-      </p>
-    </div>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; margin: 20px 0;">
+      <tr>
+        <td style="padding: 18px 20px;">
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #2D3748;">
+            <strong>Role:</strong> ${escapeHtml(jobTitle)}
+          </p>
+          <p style="margin: 0 0 8px 0; font-size: 14px; color: #2D3748;">
+            <strong>Skill Match Score:</strong>
+            <span style="display: inline-block; background-color: #FBF3E2; color: #064E3B; font-weight: 700; padding: 2px 10px; border-radius: 4px; border: 1px solid #C8963E;">
+              ${matchScore}%
+            </span>
+          </p>
+          <p style="margin: 0; font-size: 13px; color: #6B7280;">
+            Review their verified skills, projects, and structured profile on your recruiter portal.
+          </p>
+        </td>
+      </tr>
+    </table>
   `;
 
-  const textContent = `Hi ${recruiterName || "Recruiter"},\n\nA new candidate has applied for your job: ${jobTitle} at ${companyName}.\n\nSkill Match Score: ${matchScore}%\n\nReview the applicant on your dashboard: ${ctaUrl}\n\n© Career OS`;
+  const { html, text } = renderEmail({
+    preheader,
+    title,
+    bodyHtml,
+    cta: { label: "Review Applicants", url: ctaUrl },
+    reasonText: "You received this email because you posted an active job opening on Career OS.",
+  });
 
   await brevoPost({
     sender: { email: env.EMAIL_FROM, name: "Career OS" },
     to: [{ email: to, name: recruiterName || "Recruiter" }],
     subject,
-    htmlContent: renderBrandedEmail({
-      title: heading,
-      heading,
-      bodyHtml,
-      ctaText: "Review Applicants",
-      ctaUrl,
-    }),
-    textContent,
+    htmlContent: html,
+    textContent: text,
   });
 };
 
 /**
- * 5. Send scheduled digest email (Job digest, recruiter digest, profile nudge, job auto-close).
- * Includes List-Unsubscribe headers, footer with unsubscribe & preferences links.
+ * 5. Send scheduled digest email (Job digest, recruiter digest, profile nudge, job auto-close, tracker reminders).
+ * Uses renderEmail with List-Unsubscribe headers, footer with unsubscribe & preferences links.
  */
 export const sendScheduledDigestEmail = async ({
   to,
   toName,
   subject,
   heading,
+  preheader,
   bodyHtml,
   textContent,
   ctaText,
@@ -407,49 +353,45 @@ export const sendScheduledDigestEmail = async ({
   unsubscribeToken,
   unsubscribeType,
   footerReason,
+  extraLinks,
 }) => {
   assertConfig();
 
-  const frontendUrl = env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001";
+  const frontendUrl = (env.FRONTEND_URL || env.CLIENT_URL || "http://localhost:3001").replace(/\/+$/, "");
   const unsubscribeUrl = unsubscribeToken && unsubscribeType
     ? `${frontendUrl}/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}&type=${encodeURIComponent(unsubscribeType)}`
-    : `${frontendUrl}/account`;
-  const preferencesUrl = `${frontendUrl}/account`;
+    : "";
 
   const reasonText = footerReason || "You received this email based on your Career OS notification preferences.";
 
-  const customFooterHtml = `
-    <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #E8D3AA; text-align: left; font-size: 12px; line-height: 1.6; color: #6B7280;">
-      <p style="margin: 0 0 6px;">${escapeHtml(reasonText)}</p>
-      <p style="margin: 0;">
-        <a href="${escapeHtml(unsubscribeUrl)}" style="color: #064E3B; text-decoration: underline; font-weight: 500;">Unsubscribe from this notification</a>
-        &nbsp;&bull;&nbsp;
-        <a href="${escapeHtml(preferencesUrl)}" style="color: #064E3B; text-decoration: underline; font-weight: 500;">Manage email preferences</a>
-      </p>
-    </div>
-  `;
+  // Sanitize subject: remove any occurrence of "ATS"
+  const cleanSubject = String(subject || "").replace(/\bATS\b/gi, "Automated Screening").trim();
 
-  const fullTextContent = `${textContent}\n\n---\n${reasonText}\nUnsubscribe: ${unsubscribeUrl}\nManage email preferences: ${preferencesUrl}\n\n© Career OS`;
+  const { html, text } = renderEmail({
+    preheader: preheader || heading || cleanSubject,
+    title: heading,
+    bodyHtml,
+    bodyText: textContent,
+    cta: ctaText && ctaUrl ? { label: ctaText, url: ctaUrl } : undefined,
+    unsubscribeUrl,
+    extraLinks,
+    reasonText,
+  });
 
-  const headers = {
-    "List-Unsubscribe": `<${unsubscribeUrl}>`,
-    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-  };
+  const headers = unsubscribeUrl
+    ? {
+        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      }
+    : undefined;
 
   await brevoPost({
     sender: { email: env.EMAIL_FROM, name: "Career OS" },
     to: [{ email: to, name: toName || "Career OS User" }],
-    subject,
-    htmlContent: renderBrandedEmail({
-      title: heading,
-      heading,
-      bodyHtml,
-      ctaText,
-      ctaUrl,
-      customFooterHtml,
-    }),
-    textContent: fullTextContent,
-    headers,
+    subject: cleanSubject,
+    htmlContent: html,
+    textContent: text,
+    ...(headers && { headers }),
   });
 };
 

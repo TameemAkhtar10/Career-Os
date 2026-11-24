@@ -10,6 +10,9 @@ import { CoverLetterDailyCount } from "../models/CoverLetterDailyCount.js";
 import { ResumeDraft } from "../models/ResumeDraft.js";
 import { SavedJob } from "../models/savedJob.model.js";
 import { JobAlert } from "../models/jobAlert.model.js";
+import TrackerEntry from "../models/TrackerEntry.js";
+import { InterviewSession } from "../models/InterviewSession.js";
+import { InterviewPrepDailyCount } from "../models/InterviewPrepDailyCount.js";
 import { deleteFileFromImageKit } from "../services/imagekit.service.js";
 import { deleteResumeFromGridFS } from "../services/gridfs.service.js";
 import { clearAuthCookies } from "../services/token.service.js";
@@ -72,6 +75,9 @@ export const deleteAccount = asyncHandler(async (req, res) => {
       ResumeDraft.deleteOne({ user: userId }),
       SavedJob.deleteMany({ user: userId }),
       JobAlert.deleteMany({ user: userId }),
+      TrackerEntry.deleteMany({ user: userId }),
+      InterviewSession.deleteMany({ user: userId }),
+      InterviewPrepDailyCount.deleteMany({ user: userId }),
       User.deleteOne({ _id: userId }),
     ]);
   } else if (user.role === "recruiter") {
@@ -129,7 +135,7 @@ export const exportAccountData = asyncHandler(async (req, res) => {
   };
 
   if (user.role === "candidate") {
-    const [profile, applications, resumeAnalyses, savedJobs, jobAlerts, resumeDraft] = await Promise.all([
+    const [profile, applications, resumeAnalyses, savedJobs, jobAlerts, resumeDraft, trackerEntries, interviewSessions] = await Promise.all([
       CandidateProfile.findOne({ user: userId }).lean(),
       Application.find({ candidate: userId })
         .populate("job", "title companyName location jobType workMode status")
@@ -140,6 +146,8 @@ export const exportAccountData = asyncHandler(async (req, res) => {
         .lean(),
       JobAlert.find({ user: userId }).select("-__v").lean(),
       ResumeDraft.findOne({ user: userId }).select("-__v").lean(),
+      TrackerEntry.find({ user: userId }).select("-__v").lean(),
+      InterviewSession.find({ user: userId }).select("-__v").lean(),
     ]);
 
     exportData.profile = profile || null;
@@ -148,6 +156,8 @@ export const exportAccountData = asyncHandler(async (req, res) => {
     exportData.savedJobs = savedJobs;
     exportData.jobAlerts = jobAlerts;
     exportData.resumeDraft = resumeDraft || null;
+    exportData.trackerEntries = trackerEntries;
+    exportData.interviewSessions = interviewSessions;
   } else if (user.role === "recruiter") {
     const [profile, jobs] = await Promise.all([
       RecruiterProfile.findOne({ user: userId }).lean(),
@@ -183,6 +193,7 @@ export const getNotificationPreferences = asyncHandler(async (req, res) => {
     jobAlerts: user.emailPreferences?.jobAlerts ?? true,
     applicantDigest: user.emailPreferences?.applicantDigest ?? true,
     profileNudges: user.emailPreferences?.profileNudges ?? true,
+    trackerReminders: user.emailPreferences?.trackerReminders ?? true,
   };
 
   res.status(200).json(
@@ -195,12 +206,13 @@ export const getNotificationPreferences = asyncHandler(async (req, res) => {
  * Updates the current user's email notification preferences.
  */
 export const updateNotificationPreferences = asyncHandler(async (req, res) => {
-  const { jobAlerts, applicantDigest, profileNudges } = req.body;
+  const { jobAlerts, applicantDigest, profileNudges, trackerReminders } = req.body;
 
   const updateFields = {};
   if (typeof jobAlerts === "boolean") updateFields["emailPreferences.jobAlerts"] = jobAlerts;
   if (typeof applicantDigest === "boolean") updateFields["emailPreferences.applicantDigest"] = applicantDigest;
   if (typeof profileNudges === "boolean") updateFields["emailPreferences.profileNudges"] = profileNudges;
+  if (typeof trackerReminders === "boolean") updateFields["emailPreferences.trackerReminders"] = trackerReminders;
 
   const updatedUser = await User.findByIdAndUpdate(
     req.user._id,
@@ -218,6 +230,7 @@ export const updateNotificationPreferences = asyncHandler(async (req, res) => {
     jobAlerts: updatedUser.emailPreferences?.jobAlerts ?? true,
     applicantDigest: updatedUser.emailPreferences?.applicantDigest ?? true,
     profileNudges: updatedUser.emailPreferences?.profileNudges ?? true,
+    trackerReminders: updatedUser.emailPreferences?.trackerReminders ?? true,
   };
 
   res.status(200).json(

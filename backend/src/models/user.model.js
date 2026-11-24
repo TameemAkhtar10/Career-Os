@@ -72,6 +72,10 @@ const userSchema = new mongoose.Schema(
         type: Boolean,
         default: true,
       },
+      trackerReminders: {
+        type: Boolean,
+        default: true,
+      },
     },
     aiConsent: {
       resumeAnalysis: {

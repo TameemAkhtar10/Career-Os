@@ -12,6 +12,7 @@
     "test:scoring": "node --test",
     "test:google": "node --test tests/googleAuth.test.js",
     "test": "node --test",
+    "check:imports": "node scripts/checkImports.js",
     "dump:resume": "node scripts/dumpResumeStructure.js"
   },
   "keywords": [],

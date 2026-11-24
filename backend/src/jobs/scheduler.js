@@ -6,6 +6,7 @@ import {
   runJobAutoClose,
   runProfileNudge,
   runJobAlerts,
+  runTrackerReminders,
 } from "./index.js";
 import { CronJobLock } from "../models/cronJobLock.model.js";
 import {
@@ -55,6 +56,13 @@ export const REGISTERED_JOBS = [
     timezone: env.CRON_TIMEZONE || "Asia/Kolkata",
     type: "hourly",
     runner: runJobAlerts,
+  },
+  {
+    name: "tracker-reminders",
+    schedule: env.TRACKER_REMINDERS_CRON || "30 8 * * *", // 08:30 daily IST
+    timezone: env.CRON_TIMEZONE || "Asia/Kolkata",
+    type: "daily",
+    runner: runTrackerReminders,
   },
 ];
 

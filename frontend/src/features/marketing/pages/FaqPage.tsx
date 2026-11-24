@@ -81,7 +81,7 @@ const FAQS: FaqItem[] = [
     answer: (
       <div className="space-y-2">
         <p>
-          Career OS includes a built-in <strong>Resume Builder</strong> that generates clean, single-column, text-based PDF resumes specifically engineered for automated ATS parsers and hiring managers.
+          Career OS includes a built-in <strong>Resume Builder</strong> that generates clean, single-column, text-based PDF resumes specifically engineered for automated screening systems and hiring managers.
         </p>
         <p>
           The Resume Builder is 100% deterministic and free of charge. The Resume Builder stores your working draft in your private account database solely for your editing convenience; it is not sent to any external AI provider, is included in account data exports, and can be cleared or deleted anytime. You can preview formatting live, test parsability with the &quot;How this will be read&quot; quality check, download the PDF, or save it directly as your official profile resume in one click.
@@ -102,6 +102,34 @@ const FAQS: FaqItem[] = [
           <Link href={ROUTES.CANDIDATE.ALERTS} className="text-emerald font-semibold underline hover:text-gold">
             Job Alerts page
           </Link>.
+        </p>
+      </div>
+    ),
+  },
+  {
+    category: "Candidates",
+    question: "How does the Application Tracker work?",
+    answer: (
+      <div className="space-y-2">
+        <p>
+          The <strong>Application Tracker</strong> (/candidate/tracker) gives you a unified view of your entire job search. All applications submitted through Career OS are synced automatically into your board, with hiring stages updated in real time as recruiters review your profile.
+        </p>
+        <p>
+          You can also track up to 300 external job applications (from company websites, LinkedIn, or referral emails), log interview rounds, take private notes, and set follow-up reminders with optional daily email digests at 08:30 AM IST.
+        </p>
+      </div>
+    ),
+  },
+  {
+    category: "Candidates",
+    question: "How does Interview Preparation work?",
+    answer: (
+      <div className="space-y-2">
+        <p>
+          Our <strong>Interview Preparation Studio</strong> (/candidate/interview-prep) helps freshers practice technical, situational, and HR interview questions tailored specifically to your target role and resume projects.
+        </p>
+        <p>
+          Practice with an integrated 2-minute timer, receive instant scoring (1 to 5 stars), and review a structured STAR blueprint for polishing your responses. Zero hallucinated metrics or inflated numbers are introduced. You can also explore our static catalog of 12 foundational engineering questions without AI or daily limits.
         </p>
       </div>
     ),
@@ -136,7 +164,7 @@ const FAQS: FaqItem[] = [
       <p>
         You receive essential transactional emails (verification OTPs, password resets, application
         confirmations, and status change notices). We also offer optional daily job alerts for candidates,
-        applicant digests for recruiters, and weekly profile tips. Every automated digest contains a 1-click
+        applicant digests for recruiters, weekly profile tips, and daily application tracker reminders. Every automated digest contains a 1-click
         unsubscribe link, and you can customize your preferences anytime in{" "}
         <Link href={ROUTES.ACCOUNT} className="text-emerald font-semibold underline hover:text-gold">
           Account Settings
@@ -169,7 +197,7 @@ const FAQS: FaqItem[] = [
         </Link>
         , click <strong>Download my data</strong> to export a complete JSON file of your profile and
         applications. You can also permanently delete your account by confirming your password in the Danger Zone,
-        which immediately wipes your credentials, resume, and application history from our database.
+        which immediately wipes your credentials, resume, tracker entries, interview prep history, and application records from our database.
       </p>
     ),
   },
@@ -205,7 +233,7 @@ export const FaqPage: React.FC = () => {
             Honest, straightforward answers about how Career OS works for candidates, recruiters, and hiring managers.
           </p>
           <p className="text-xs text-muted">
-            Last updated: <span className="text-body font-medium">November 20, 2026</span>
+            Last updated: <span className="text-body font-medium">November 24, 2026</span>
           </p>
         </div>
 
@@ -281,4 +309,3 @@ export const FaqPage: React.FC = () => {
     </div>
   );
 };
-

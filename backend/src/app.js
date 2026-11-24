@@ -24,6 +24,8 @@ import savedJobRoutes from "./routes/savedJob.routes.js";
 import jobAlertRoutes from "./routes/jobAlert.routes.js";
 import coverLetterRoutes from "./routes/coverLetter.routes.js";
 import resumeBuilderRoutes from "./routes/resumeBuilder.routes.js";
+import trackerRoutes from "./routes/tracker.routes.js";
+import interviewPrepRoutes from "./routes/interviewPrep.routes.js";
 
 const app = express();
 
@@ -91,6 +93,8 @@ app.use("/api/saved-jobs", savedJobRoutes);
 app.use("/api/job-alerts", jobAlertRoutes);
 app.use("/api/cover-letter", coverLetterRoutes);
 app.use("/api/resume-builder", resumeBuilderRoutes);
+app.use("/api/tracker", trackerRoutes);
+app.use("/api/interview-prep", interviewPrepRoutes);
 
 // ── 404 handler ───────────────────────────────────────────────────────────────
 app.use((_req, _res, next) => {

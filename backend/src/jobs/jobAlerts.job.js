@@ -154,18 +154,21 @@ export const runJobAlerts = async ({
     const pauseAlertUrl = `${frontendUrl}/candidate/alerts?pauseToken=${encodeURIComponent(pauseToken)}`;
 
     // 5. Construct email HTML
-    const jobCardsHtml = matchingJobs
+    const displayedJobs = matchingJobs.slice(0, 10);
+    const jobCardsHtml = displayedJobs
       .map((j) => {
         const salaryText = formatSalary(j.salary);
         const locationText = [j.location?.city, j.workMode].filter(Boolean).join(" &bull; ");
         const fresherBadge = j.isFresherFriendly
-          ? `<span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #A7F3D0; margin-left: 6px;">Fresher Friendly</span>`
+          ? `<span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; border: 1px solid #A7F3D0; margin-left: 6px;">Fresher friendly</span>`
           : "";
 
         return `
-          <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 10px; padding: 18px; margin-bottom: 14px;">
+          <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
             <div style="margin-bottom: 6px;">
-              <span style="font-size: 16px; font-weight: 700; color: #064E3B;">${escapeHtml(j.title)}</span>
+              <a href="${frontendUrl}/jobs/${j._id}" target="_blank" style="font-size: 16px; font-weight: 700; color: #064E3B; text-decoration: none;">
+                ${escapeHtml(j.title)}
+              </a>
               ${fresherBadge}
             </div>
             <div style="font-size: 13px; color: #6B7280; margin-bottom: 8px;">
@@ -173,12 +176,12 @@ export const runJobAlerts = async ({
             </div>
             ${
               salaryText
-                ? `<div style="font-size: 13px; color: #C8963E; font-weight: 600; margin-bottom: 12px;">💰 ${escapeHtml(salaryText)}</div>`
+                ? `<div style="font-size: 13px; color: #C8963E; font-weight: 600; margin-bottom: 10px;">💰 ${escapeHtml(salaryText)}</div>`
                 : ""
             }
             <div style="text-align: right;">
-              <a href="${frontendUrl}/jobs/${j._id}"
-                 style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 16px; border-radius: 6px;">
+              <a href="${frontendUrl}/jobs/${j._id}" target="_blank"
+                 style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-size: 13px; font-weight: 600; text-decoration: none; padding: 7px 14px; border-radius: 6px;">
                 View Job &rarr;
               </a>
             </div>
@@ -194,23 +197,23 @@ export const runJobAlerts = async ({
       </p>
       ${jobCardsHtml}
       <div style="margin-top: 24px; text-align: center;">
-        <a href="${frontendUrl}/jobs" style="color: #064E3B; font-weight: 600; text-decoration: underline; font-size: 14px;">
-          Browse all open roles on Career OS &rarr;
+        <a href="${frontendUrl}/jobs" target="_blank" style="color: #064E3B; font-weight: 600; text-decoration: underline; font-size: 14px;">
+          View all jobs on Career OS &rarr;
         </a>
       </div>
       <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #6B7280;">
-        <a href="${pauseAlertUrl}" style="color: #C8963E; font-weight: 600; text-decoration: underline;">
+        <a href="${pauseAlertUrl}" target="_blank" style="color: #C8963E; font-weight: 600; text-decoration: underline;">
           Pause this alert ("${escapeHtml(alert.name)}") with 1 click
         </a>
       </div>
     `;
 
-    const textContent = `Hi ${user.name || "Candidate"},\n\nHere are ${matchingJobs.length} new jobs matching your alert "${alert.name}":\n\n${matchingJobs
+    const textContent = `Hi ${user.name || "Candidate"},\n\nHere are ${matchingJobs.length} new jobs matching your alert "${alert.name}":\n\n${displayedJobs
       .map(
         (j, idx) =>
-          `${idx + 1}. ${j.title} at ${j.companyName} (${j.location?.city || "Remote"})\n   Apply: ${frontendUrl}/jobs/${j._id}`
+          `${idx + 1}. ${j.title} at ${j.companyName} (${j.location?.city || "Remote"})${j.isFresherFriendly ? " [Fresher friendly]" : ""}\n   Apply: ${frontendUrl}/jobs/${j._id}`
       )
-      .join("\n\n")}\n\nPause this alert: ${pauseAlertUrl}\n\nExplore more: ${frontendUrl}/jobs`;
+      .join("\n\n")}\n\nView all jobs: ${frontendUrl}/jobs\nPause this alert: ${pauseAlertUrl}`;
 
     try {
       await sendScheduledDigestEmail({
@@ -218,13 +221,20 @@ export const runJobAlerts = async ({
         toName: user.name,
         subject: `Career OS Alert: ${matchingJobs.length} New Job${matchingJobs.length > 1 ? "s" : ""} for "${alert.name}"`,
         heading: `Job Alert: ${alert.name}`,
+        preheader: `${matchingJobs.length} new roles matching "${alert.name}" on Career OS.`,
         bodyHtml,
         textContent,
-        ctaText: "View Matching Jobs",
+        ctaText: "View all jobs",
         ctaUrl: `${frontendUrl}/jobs`,
         unsubscribeToken,
         unsubscribeType: "jobAlerts",
         footerReason: `You received this email because you created the job alert "${alert.name}" on Career OS.`,
+        extraLinks: [
+          {
+            label: "Pause this alert",
+            url: pauseAlertUrl,
+          },
+        ],
       });
 
       sent += 1;

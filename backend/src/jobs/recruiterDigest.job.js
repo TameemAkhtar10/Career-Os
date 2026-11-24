@@ -125,35 +125,34 @@ export const run = async ({ dryRun = false, force = false } = {}) => {
           type: "applicantDigest",
         });
 
-        const jobRowsHtml = jobsWithActivity
+        const displayedJobs = jobsWithActivity.slice(0, 10);
+        const jobRowsHtml = displayedJobs
           .map(({ job, newIn24h, pendingCount }) => {
             const applicantsUrl = `${frontendUrl}/recruiter/jobs/${job._id}/applicants`;
 
             return `
-              <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 10px; padding: 18px; margin-bottom: 14px;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
-                  <div>
-                    <h3 style="margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #064E3B;">
-                      ${escapeHtml(job.title)}
-                    </h3>
-                    <p style="margin: 0; font-size: 13px; color: #6B7280;">
-                      ${escapeHtml(job.companyName || "")}
-                    </p>
-                  </div>
+              <div style="background-color: #FFFFFF; border: 1px solid #E8D3AA; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+                <div style="margin-bottom: 8px;">
+                  <a href="${applicantsUrl}" target="_blank" style="font-size: 16px; font-weight: 700; color: #064E3B; text-decoration: none;">
+                    ${escapeHtml(job.title)}
+                  </a>
+                  <p style="margin: 4px 0 0 0; font-size: 13px; color: #6B7280;">
+                    ${escapeHtml(job.companyName || "")}
+                  </p>
                 </div>
 
-                <div style="margin: 12px 0; display: flex; gap: 12px;">
-                  <span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid #A7F3D0;">
-                    +${newIn24h} new in last 24h
+                <div style="margin: 10px 0;">
+                  <span style="display: inline-block; background-color: #E8F8F2; color: #064E3B; font-weight: 600; font-size: 12px; padding: 3px 8px; border-radius: 4px; border: 1px solid #A7F3D0; margin-right: 8px;">
+                    +${newIn24h} new in 24h
                   </span>
-                  <span style="display: inline-block; background-color: #FBF3E2; color: #064E3B; font-weight: 600; font-size: 13px; padding: 4px 10px; border-radius: 6px; border: 1px solid #C8963E;">
+                  <span style="display: inline-block; background-color: #FBF3E2; color: #064E3B; font-weight: 600; font-size: 12px; padding: 3px 8px; border-radius: 4px; border: 1px solid #C8963E;">
                     ${pendingCount} pending review
                   </span>
                 </div>
 
-                <div style="text-align: right; margin-top: 12px;">
-                  <a href="${applicantsUrl}"
-                     style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-size: 13px; font-weight: 600; text-decoration: none; padding: 8px 16px; border-radius: 6px;">
+                <div style="text-align: right; margin-top: 10px;">
+                  <a href="${applicantsUrl}" target="_blank"
+                     style="display: inline-block; background-color: #064E3B; color: #FFF8EC; font-size: 13px; font-weight: 600; text-decoration: none; padding: 7px 14px; border-radius: 6px;">
                     Review Applicants &rarr;
                   </a>
                 </div>
@@ -170,26 +169,33 @@ export const run = async ({ dryRun = false, force = false } = {}) => {
 
           ${jobRowsHtml}
 
+          <div style="margin-top: 24px; text-align: center;">
+            <a href="${frontendUrl}/recruiter/dashboard" target="_blank" style="color: #064E3B; font-weight: 600; text-decoration: underline; font-size: 14px;">
+              View all jobs on Career OS &rarr;
+            </a>
+          </div>
+
           <p style="margin: 20px 0 0; font-size: 13px; color: #6B7280; text-align: center;">
             For privacy and security, candidate contact details are only accessible inside your authenticated dashboard.
           </p>
         `;
 
-        const textContent = `Hi ${recruiter.name || "Recruiter"},\n\nHere is your daily applicant digest:\nTotal new in last 24h: ${totalNewApplicants}\nTotal pending review: ${totalPendingApplicants}\n\n${jobsWithActivity
+        const textContent = `Hi ${recruiter.name || "Recruiter"},\n\nHere is your daily applicant digest:\nTotal new in last 24h: ${totalNewApplicants}\nTotal pending review: ${totalPendingApplicants}\n\n${displayedJobs
           .map(
             ({ job, newIn24h, pendingCount }) =>
               `• ${job.title} (${job.companyName})\n  New in 24h: ${newIn24h} | Total pending: ${pendingCount}\n  Review: ${frontendUrl}/recruiter/jobs/${job._id}/applicants`
           )
-          .join("\n\n")}\n\nManage your jobs: ${frontendUrl}/recruiter/dashboard`;
+          .join("\n\n")}\n\nView all jobs: ${frontendUrl}/recruiter/dashboard`;
 
         await sendScheduledDigestEmail({
           to: recruiter.email,
           toName: recruiter.name,
           subject: `Career OS: Daily Applicant Digest (${totalNewApplicants} New, ${totalPendingApplicants} Pending)`,
           heading: "Daily Recruiter Digest",
+          preheader: `${totalNewApplicants} new applicants across your open positions.`,
           bodyHtml,
           textContent,
-          ctaText: "Go to Recruiter Dashboard",
+          ctaText: "View all jobs",
           ctaUrl: `${frontendUrl}/recruiter/dashboard`,
           unsubscribeToken,
           unsubscribeType: "applicantDigest",
