@@ -64,21 +64,20 @@ export const renderEmail = ({
   unsubscribeUrl = "",
   extraLinks = [],
   reasonText = "You received this email from Career OS according to your account settings and notification preferences.",
+  baseUrl,
 } = {}) => {
   const currentYear = new Date().getFullYear();
 
-  // Logo decision: ONLY read process.env.FRONTEND_URL live at call time.
-  // Never fall back to the cached env module — that object is frozen at startup
-  // and will still hold the .env value even when tests delete process.env.FRONTEND_URL.
-  const liveUrl = typeof process.env.FRONTEND_URL === "string"
-    ? process.env.FRONTEND_URL.trim()
-    : "";               // deleted or never set → treat as absent, no logo
+  // Logo/base URL decision: accept explicit baseUrl or read process.env.FRONTEND_URL live at call time.
+  // Never fall back to localhost or cached env.FRONTEND_URL when missing/empty.
+  const explicitBase = typeof baseUrl === "string" ? baseUrl.trim() : undefined;
+  const liveUrl =
+    explicitBase !== undefined
+      ? explicitBase
+      : typeof process.env.FRONTEND_URL === "string"
+        ? process.env.FRONTEND_URL.trim()
+        : "";
 
-  const logoUrl = liveUrl ? `${liveUrl.replace(/\/+$/, "")}/email/logo.png` : null;
-
-  // For footer links and CTA fall-back text we can be more lenient:
-  // prefer the live value, then fall back to other env keys so footer links
-  // still resolve in production when only CLIENT_URL is set.
   const frontendUrl = (liveUrl || env.CLIENT_URL || "").replace(/\/+$/, "");
 
   // Inline SVG logo mark — identical vector paths to Logo.tsx.

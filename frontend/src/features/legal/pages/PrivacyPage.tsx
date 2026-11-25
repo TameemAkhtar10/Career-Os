@@ -11,7 +11,7 @@ import { ROUTES } from "../../../constants/routes";
 import { Shield, Lock, Eye, Download, Trash2, Mail, Cookie } from "lucide-react";
 
 export const PrivacyPage: React.FC = () => {
-  const lastUpdated = "November 24, 2026";
+  const lastUpdated = "November 25, 2026";
 
   return (
     <div className="min-h-screen bg-champagne/40 py-12 px-4 sm:px-6 lg:px-8">
@@ -121,7 +121,7 @@ export const PrivacyPage: React.FC = () => {
             <div>
               <h3 className="font-semibold text-emerald-dark mb-1">G. Interview Preparation &amp; Feedback</h3>
               <p>
-                When you use our Interview Preparation studio, your practice responses and generated feedback are stored securely in your private session history. Responses are evaluated with strict data minimisation: text is never retained for training third-party foundation models, and candidate sessions can be deleted individually or permanently via account deletion.
+                Our Interview Preparation Studio uses your redacted resume text (with name, email, phone, address, and personal links removed) when you choose resume-driven mode. Your practice answers are sent to our AI provider only when you explicitly ask for feedback, request an AI sample answer, or generate a final report. Saved sessions (including your answers, scores, and reports) are stored securely in your private account and can be deleted individually or all at once at any time. You may withdraw your AI consent at any time from Account Settings or the Resume Checker panel.
               </p>
             </div>
           </div>

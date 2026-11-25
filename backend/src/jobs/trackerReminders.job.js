@@ -8,10 +8,15 @@ import { env } from "../config/env.js";
 
 const TASK_NAME = "tracker-reminders";
 
-export const runTrackerReminders = async ({ dryRun = false } = {}) => {
-  const lock = await acquireCronLock(TASK_NAME);
-  if (!lock.acquired) {
-    return { task: TASK_NAME, status: "locked", reason: lock.reason };
+export const runTrackerReminders = async ({ dryRun = false, force = false } = {}) => {
+  const lock = await acquireCronLock({ task: TASK_NAME, dryRun, force });
+  if (!lock.locked) {
+    return {
+      task: TASK_NAME,
+      status: "skipped",
+      reason: lock.reason,
+      stats: { eligible: 0, sent: 0, skipped: 0, failed: 0 },
+    };
   }
 
   const stats = { eligible: 0, sent: 0, failed: 0, skipped: 0 };

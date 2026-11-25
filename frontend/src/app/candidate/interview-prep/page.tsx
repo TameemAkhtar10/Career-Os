@@ -4,9 +4,13 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInterviewPrep } from "@/features/interview-prep/hooks/useInterviewPrep";
 import { SetupPanel } from "@/features/interview-prep/components/SetupPanel";
+import { ResumeMapCard } from "@/features/interview-prep/components/ResumeMapCard";
 import { PracticeMode } from "@/features/interview-prep/components/PracticeMode";
+import { FinalReportView } from "@/features/interview-prep/components/FinalReportView";
 import { HistoryTab } from "@/features/interview-prep/components/HistoryTab";
-import { Sparkles, History, BookOpen, CheckCircle } from "lucide-react";
+import { ConsentDialog } from "@/features/resume-check/components/ConsentDialog";
+import { QuestionMix } from "@/features/interview-prep/types/interviewPrep.types";
+import { Sparkles, History, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CandidateInterviewPrepPage() {
@@ -15,27 +19,48 @@ export default function CandidateInterviewPrepPage() {
   const initialRole = searchParams.get("role") || "";
 
   const [activeTab, setActiveTab] = useState<"practice" | "history">("practice");
-  const [sessionFinished, setSessionFinished] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [setupMixOverride, setSetupMixOverride] = useState<QuestionMix | undefined>(undefined);
 
   const {
     questions,
+    resumeMap,
     currentIdx,
     setCurrentIdx,
     activeRole,
     quota,
+    hasResume,
     loadingQuestions,
     loadingFeedback,
+    loadingAiAnswer,
+    loadingReport,
+    downloadingPdf,
+    savingSession,
+    sessionSaved,
     feedback,
+    aiAnswer,
     evaluatedItems,
+    reportData,
     sessions,
     loadingSessions,
     error,
+    rateLimited,
+    consentRequired,
+    setConsentRequired,
+    confirmConsentAndRetry,
     loadQuestions,
     loadBasics,
     submitAnswerForFeedback,
+    requestAiAnswer,
+    skipQuestion,
+    insertFollowUpQuestion,
+    generateFinalReport,
+    downloadPdf,
     saveCurrentSession,
     fetchSessions,
     deleteSession,
+    deleteAllSessions,
+    resetStudio,
   } = useInterviewPrep();
 
   useEffect(() => {
@@ -44,54 +69,74 @@ export default function CandidateInterviewPrepPage() {
     }
   }, [activeTab, fetchSessions]);
 
-  const handleFinish = async () => {
+  const handleFinishSession = async () => {
+    if (evaluatedItems.length === 0) {
+      toast.info("Answer or skip at least one question before generating a report.");
+      return;
+    }
+    setShowReport(true);
+    await generateFinalReport();
+  };
+
+  const handleSaveSession = async () => {
     try {
-      if (evaluatedItems.length > 0) {
-        await saveCurrentSession(initialJobId);
-        toast.success("Practice session and feedback saved to history!");
-      }
-      setSessionFinished(true);
+      await saveCurrentSession(initialJobId);
+      toast.success("Practice session and report saved to history!");
     } catch {
-      toast.error("Failed to save session to history");
+      toast.error("Failed to save session to history.");
     }
   };
 
+  const handleDownloadPdf = async () => {
+    try {
+      await downloadPdf();
+      toast.success("PDF report downloaded.");
+    } catch {
+      toast.error("Failed to download PDF report.");
+    }
+  };
+
+  const handlePracticeWeakAreas = (mix: QuestionMix) => {
+    setSetupMixOverride(mix);
+    setShowReport(false);
+    resetStudio();
+    toast.info("Mix updated to focus on your weakest area. Click Start mock interview!");
+  };
+
   return (
-    <div className="min-h-screen bg-[#FDFBF7] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FDFBF7] py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E6F4EA] border border-emerald-200 text-[#064E3B] text-xs font-semibold mb-2">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Realistic Indian Tech Interviews</span>
+              <span>Resume-Driven Mock Interviews</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-stone-900 font-serif">
-              Interview Preparation &amp; Feedback
+              Interview Preparation Studio
             </h1>
             <p className="text-xs sm:text-sm text-stone-600 mt-1">
-              Practice role-tailored interview rounds with immediate feedback, STAR structure blueprints, and zero hallucinated metrics.
+              Grounded in your redacted resume projects, with probing follow-ups, AI sample answers when stuck, and a downloadable 7-day report.
             </p>
           </div>
 
           {quota && (
-            <div className="bg-white border border-[#E8D3AA] px-4 py-2 rounded-xl shadow-xs text-xs">
-              <span className="text-stone-500 block">Daily AI Practice Rounds:</span>
+            <div className="bg-white border border-[#E8D3AA] px-4 py-2 rounded-xl shadow-xs text-xs shrink-0">
+              <span className="text-stone-500 block">AI uses today:</span>
               <strong className="text-[#064E3B] font-mono">
-                {quota.remaining} of {quota.limit} remaining
+                {quota.used} / {quota.limit} ({quota.remaining} left)
               </strong>
             </div>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex items-center gap-2 border-b border-stone-200 mb-6">
+        <div className="flex items-center gap-2 border-b border-stone-200 mb-6 overflow-x-auto">
           <button
-            onClick={() => {
-              setActiveTab("practice");
-              setSessionFinished(false);
-            }}
-            className={`pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 transition-colors ${
+            type="button"
+            onClick={() => setActiveTab("practice")}
+            className={`pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-colors ${
               activeTab === "practice"
                 ? "border-[#064E3B] text-[#064E3B]"
                 : "border-transparent text-stone-500 hover:text-stone-800"
@@ -101,8 +146,9 @@ export default function CandidateInterviewPrepPage() {
             <span>Practice Studio</span>
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab("history")}
-            className={`pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 transition-colors ${
+            className={`pb-3 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 whitespace-nowrap transition-colors ${
               activeTab === "history"
                 ? "border-[#064E3B] text-[#064E3B]"
                 : "border-transparent text-stone-500 hover:text-stone-800"
@@ -114,62 +160,103 @@ export default function CandidateInterviewPrepPage() {
         </div>
 
         {error && (
-          <div className="p-4 mb-6 rounded-xl bg-rose-50 text-rose-700 text-xs sm:text-sm border border-rose-200">
-            {error}
+          <div className="p-4 mb-6 rounded-xl bg-rose-50 text-rose-700 text-xs sm:text-sm border border-rose-200 flex flex-wrap items-center justify-between gap-3">
+            <span>{error}</span>
+            {rateLimited && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowReport(false);
+                  loadBasics();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#064E3B] text-white text-xs font-semibold"
+              >
+                <BookOpen className="w-3.5 h-3.5" /> Practice 12 Basics (No Quota)
+              </button>
+            )}
           </div>
         )}
 
         {/* Tab Views */}
         {activeTab === "practice" ? (
-          sessionFinished ? (
-            <div className="bg-white border border-[#E8D3AA] rounded-2xl p-10 text-center space-y-4 max-w-lg mx-auto shadow-xs">
-              <CheckCircle className="w-12 h-12 text-[#064E3B] mx-auto" />
-              <h3 className="text-xl font-bold font-serif text-stone-900">
-                Session Completed &amp; Saved!
-              </h3>
-              <p className="text-xs text-stone-600">
-                You evaluated {evaluatedItems.length} question(s). You can review all your answers, scores, and feedback in the History tab anytime.
-              </p>
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  onClick={() => setSessionFinished(false)}
-                  className="px-5 py-2.5 bg-[#064E3B] text-white text-xs font-semibold rounded-lg hover:bg-[#032E23]"
-                >
-                  Start Another Practice
-                </button>
-                <button
-                  onClick={() => setActiveTab("history")}
-                  className="px-4 py-2 border border-stone-200 text-stone-700 text-xs font-semibold rounded-lg hover:bg-stone-50"
-                >
-                  View History
-                </button>
-              </div>
-            </div>
+          showReport ? (
+            <FinalReportView
+              role={activeRole}
+              stats={
+                reportData?.stats || {
+                  totalQuestions: evaluatedItems.length,
+                  answeredCount: evaluatedItems.filter((i) => !i.skipped && !i.usedAiAnswer).length,
+                  skippedCount: evaluatedItems.filter((i) => i.skipped).length,
+                  aiAssistedCount: evaluatedItems.filter((i) => i.usedAiAnswer).length,
+                  averageScore: null,
+                  categoryAverages: {},
+                  projectAverages: {},
+                  skillAverages: {},
+                  strongestAreas: [],
+                  weakestAreas: [],
+                }
+              }
+              report={reportData?.report || null}
+              aiAvailable={reportData?.aiAvailable ?? true}
+              items={evaluatedItems}
+              loadingReport={loadingReport}
+              downloadingPdf={downloadingPdf}
+              savingSession={savingSession}
+              sessionSaved={sessionSaved}
+              onDownloadPdf={handleDownloadPdf}
+              onSaveSession={handleSaveSession}
+              onRetryReport={() => generateFinalReport()}
+              onPracticeWeakAreas={handlePracticeWeakAreas}
+              onStartNew={() => {
+                setShowReport(false);
+                resetStudio();
+              }}
+            />
           ) : questions.length === 0 ? (
             <SetupPanel
               onStartCustom={(params) => loadQuestions({ ...params, jobId: initialJobId })}
               onStartBasics={loadBasics}
               loading={loadingQuestions}
               initialRole={initialRole}
+              hasResume={hasResume}
+              quota={quota}
+              initialMix={setupMixOverride}
             />
           ) : (
-            <PracticeMode
-              questions={questions}
-              currentIdx={currentIdx}
-              onSelectIndex={setCurrentIdx}
-              onSubmitAnswer={submitAnswerForFeedback}
-              feedback={feedback}
-              loadingFeedback={loadingFeedback}
-              onFinishSession={handleFinish}
-            />
+            <div className="space-y-4">
+              <ResumeMapCard resumeMap={resumeMap} />
+              <PracticeMode
+                questions={questions}
+                currentIdx={currentIdx}
+                onSelectIndex={setCurrentIdx}
+                onSubmitAnswer={submitAnswerForFeedback}
+                onRequestAiAnswer={requestAiAnswer}
+                onSkipQuestion={skipQuestion}
+                onAnswerFollowUp={insertFollowUpQuestion}
+                feedback={feedback}
+                aiAnswer={aiAnswer}
+                loadingFeedback={loadingFeedback}
+                loadingAiAnswer={loadingAiAnswer}
+                onFinishSession={handleFinishSession}
+                quota={quota}
+              />
+            </div>
           )
         ) : (
           <HistoryTab
             sessions={sessions}
             onDeleteSession={deleteSession}
+            onDeleteAllSessions={deleteAllSessions}
             loading={loadingSessions}
           />
         )}
+
+        <ConsentDialog
+          isOpen={consentRequired}
+          onConfirm={confirmConsentAndRetry}
+          onCancel={() => setConsentRequired(false)}
+          isLoading={loadingQuestions}
+        />
       </div>
     </div>
   );

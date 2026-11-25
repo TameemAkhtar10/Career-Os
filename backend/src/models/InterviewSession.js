@@ -8,8 +8,22 @@ const interviewItemSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ["technical", "behavioral", "situational", "hr"],
-      default: "technical",
+      enum: [
+        "project",
+        "skills",
+        "hr",
+        "scenario",
+        "followup",
+        "technical",
+        "behavioral",
+        "situational",
+      ],
+      default: "skills",
+    },
+    relatedTo: {
+      type: String,
+      maxlength: 200,
+      default: "",
     },
     question: {
       type: String,
@@ -24,6 +38,14 @@ const interviewItemSchema = new mongoose.Schema(
       type: String,
       maxlength: 5000,
       default: "",
+    },
+    skipped: {
+      type: Boolean,
+      default: false,
+    },
+    usedAiAnswer: {
+      type: Boolean,
+      default: false,
     },
     score: {
       type: Number,
@@ -42,6 +64,20 @@ const interviewItemSchema = new mongoose.Schema(
     betterStructure: {
       type: String,
       maxlength: 3000,
+      default: "",
+    },
+    betterAnswer: {
+      type: String,
+      maxlength: 3000,
+      default: "",
+    },
+    keyPoints: {
+      type: [String],
+      default: () => [],
+    },
+    howToDeliver: {
+      type: String,
+      maxlength: 1000,
       default: "",
     },
     followUpQuestion: {
@@ -85,6 +121,18 @@ const interviewSessionSchema = new mongoose.Schema(
     items: {
       type: [interviewItemSchema],
       default: () => [],
+    },
+    stats: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    report: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    resumeMap: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
   },
   {

@@ -59,6 +59,8 @@ if (env.NODE_ENV !== "test") {
 }
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
+// Interview prep payloads (report items, resumeMap, PDF export) can exceed 10kb
+app.use("/api/interview-prep", express.json({ limit: "256kb" }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 

@@ -126,10 +126,10 @@ const FAQS: FaqItem[] = [
     answer: (
       <div className="space-y-2">
         <p>
-          Our <strong>Interview Preparation Studio</strong> (/candidate/interview-prep) helps freshers practice technical, situational, and HR interview questions tailored specifically to your target role and resume projects.
+          Our <strong>Interview Preparation Studio</strong> (/candidate/interview-prep) runs a resume-driven mock interview using your redacted resume text (with your name, email, phone, address, and personal links stripped) or a role-only mode. You can customize the mix of project, skills, and HR questions, answer with an optional 2-minute timer, receive follow-up questions, view an AI sample answer if you get stuck, and generate a downloadable PDF report with a 7-day plan.
         </p>
         <p>
-          Practice with an integrated 2-minute timer, receive instant scoring (1 to 5 stars), and review a structured STAR blueprint for polishing your responses. Zero hallucinated metrics or inflated numbers are introduced. You can also explore our static catalog of 12 foundational engineering questions without AI or daily limits.
+          Your answers are sent to our AI provider only when you ask for feedback, an AI answer, or a report. Saved sessions are stored for your review and can be deleted individually or all at once anytime, and you can withdraw your AI consent whenever you wish. You can also practice our 12 foundational questions without AI or daily limits.
         </p>
       </div>
     ),
@@ -233,7 +233,7 @@ export const FaqPage: React.FC = () => {
             Honest, straightforward answers about how Career OS works for candidates, recruiters, and hiring managers.
           </p>
           <p className="text-xs text-muted">
-            Last updated: <span className="text-body font-medium">November 24, 2026</span>
+            Last updated: <span className="text-body font-medium">November 25, 2026</span>
           </p>
         </div>
 

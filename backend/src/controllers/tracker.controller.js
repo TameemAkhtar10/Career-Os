@@ -30,13 +30,22 @@ export const mapApplicationStatusToStage = (status) => {
   }
 };
 
+const formatJobLocation = (loc) => {
+  if (!loc) return "";
+  if (typeof loc === "string") return loc.trim();
+  if (typeof loc === "object") {
+    return [loc.city, loc.state].map((s) => (typeof s === "string" ? s.trim() : "")).filter(Boolean).join(", ");
+  }
+  return "";
+};
+
 /**
  * Lazily mirrors platform Application records into TrackerEntry.
  * Guarantees candidate has an up-to-date tracker representation of native applications.
  */
 export const syncPlatformApplicationsForUser = async (userId) => {
   const applications = await Application.find({ candidate: userId })
-    .populate("job", "title company location workplaceType")
+    .populate("job", "title companyName company location workMode")
     .lean();
 
   if (!applications || applications.length === 0) return;
@@ -51,25 +60,36 @@ export const syncPlatformApplicationsForUser = async (userId) => {
     });
 
     if (!existing) {
-      await TrackerEntry.create({
-        user: userId,
-        source: "platform",
-        application: app._id,
-        job: app.job._id,
-        jobTitle: app.job.title,
-        company: app.job.company,
-        location: app.job.location || "",
-        link: `/jobs/${app.job._id}`,
-        stage,
-        appliedOn: app.createdAt || new Date(),
-        stageHistory: [
+      try {
+        await TrackerEntry.findOneAndUpdate(
+          { user: userId, application: app._id },
           {
-            stage,
-            at: app.createdAt || new Date(),
+            $setOnInsert: {
+              user: userId,
+              source: "platform",
+              application: app._id,
+              job: app.job._id,
+              jobTitle: app.job.title,
+              company: app.job.companyName || app.job.company || "Company",
+              location: formatJobLocation(app.job.location),
+              link: `/jobs/${app.job._id}`,
+              stage,
+              appliedOn: app.createdAt || new Date(),
+              stageHistory: [
+                {
+                  stage,
+                  at: app.createdAt || new Date(),
+                },
+              ],
+              remindersEnabled: true,
+            },
           },
-        ],
-        remindersEnabled: true,
-      });
+          { upsert: true, new: true }
+        );
+      } catch (err) {
+        // Ignore duplicate key errors when concurrent requests sync the same application
+        if (err?.code !== 11000) throw err;
+      }
     } else if (existing.stage !== stage) {
       // Stage was updated by recruiter
       existing.stage = stage;

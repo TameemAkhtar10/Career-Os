@@ -50,7 +50,7 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinkClass = (active: boolean) =>
-    `text-sm font-medium transition-colors px-3 py-1.5 rounded-ui ${
+    `text-[13px] font-medium whitespace-nowrap transition-colors px-2.5 py-1.5 rounded-ui ${
       active
         ? "text-emerald-dark font-semibold bg-champagne/60"
         : "text-body/80 hover:text-emerald-dark hover:bg-cream/80"
@@ -63,7 +63,7 @@ export const Navbar: React.FC = () => {
         <Logo />
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1 lg:gap-2">
+        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1">
           {!isAuthenticated && (
             <>
               <Link href={ROUTES.JOBS} className={navLinkClass(isJobsActive)}>
